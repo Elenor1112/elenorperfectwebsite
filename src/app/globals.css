@@ -1,0 +1,229 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: #05060a;
+  --fg: #f4f4f0;
+  --accent: #68cad6;
+  --accent-glow: #8bdae3;
+
+  /* Brand palette as RGB triplets — Tailwind's brand-* colors resolve through
+     these, and the CMS theme settings override them at render time. */
+  --color-brand: 59 168 181; /* #3ba8b5 */
+  --color-brand-glow: 104 202 214; /* #68cad6 */
+  --color-brand-cyan: 54 224 208; /* #36e0d0 */
+  --color-brand-amber: 255 181 71; /* #ffb547 */
+
+  /* Showcase Stream (3D card ring) — DOM-side theme tokens. The WebGL layer
+     takes the same values through its `config` prop; keep them in sync. */
+  --showcase-bg: #020608; /* near-black with a cyan shade; floats over the fixed starfield */
+  --showcase-card-radius: 16px;
+  --showcase-back-fade: 0.3;
+  --showcase-ring-tilt: 20deg;
+}
+
+* {
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+html {
+  scroll-behavior: auto; /* Lenis controls scroll; native smooth would fight it */
+}
+
+html.lenis,
+html.lenis body {
+  height: auto;
+}
+
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+
+.lenis.lenis-stopped {
+  overflow: hidden;
+}
+
+body {
+  background: var(--bg);
+  color: var(--fg);
+  overflow-x: hidden;
+  font-feature-settings: 'ss01', 'cv01';
+}
+
+::selection {
+  background: var(--accent);
+  color: #05060a;
+}
+
+/* Hide the fixed nav while the first-visit intro overlay is in the DOM. The
+   overlay sits inside <main> (a z-10 stacking context), so its z-[100] can
+   never paint over the z-[65] header — the header must hide itself instead.
+   The intro's skip/finish paths inject a matching `visibility:visible
+   !important` restore rule so returning visitors never lose the nav. */
+body:has(#elenor-intro) #site-nav {
+  visibility: hidden;
+}
+
+/* Thin custom scrollbar */
+::-webkit-scrollbar { width: 9px; }
+::-webkit-scrollbar-track { background: #05060a; }
+::-webkit-scrollbar-thumb {
+  background: #2a2c3a;
+  border-radius: 99px;
+}
+::-webkit-scrollbar-thumb:hover { background: #3a3d52; }
+
+@layer components {
+  .container-x {
+    @apply mx-auto w-full max-w-content px-6 md:px-10;
+  }
+  .eyebrow {
+    @apply inline-flex items-center gap-2 text-xs font-medium uppercase tracking-[0.22em] text-[#68cad6];
+  }
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-full bg-[#68cad6] px-7 py-3.5 text-sm font-semibold text-ink transition-all duration-300 hover:bg-[#8bdae3] hover:shadow-[0_0_40px_-8px_#68cad6];
+  }
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 rounded-full border border-white/15 px-7 py-3.5 text-sm font-semibold text-white/90 transition-all duration-300 hover:border-white/40 hover:bg-white/5;
+  }
+  .glass {
+    @apply border border-white/10 bg-white/[0.03] backdrop-blur-xl;
+  }
+}
+
+/* Scroll-reveal target state (set by Reveal.tsx) */
+.reveal-in {
+  opacity: 1 !important;
+  transform: translateY(0) !important;
+}
+
+/* Gradient text */
+.text-gradient {
+  background: linear-gradient(110deg, #fff 0%, #bfe9f0 40%, #68cad6 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Grain / noise overlay — a real fixed element (see RootLayout) rather than a
+   body::after pseudo, so browser extensions mutating <body> can't collide with
+   React's reconciliation. */
+.noise-overlay {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 60;
+  opacity: 0.035;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* Subtle drifting curved lines behind the services showcase (ServicesShowcase).
+   Each path sways very slowly on a long loop; kept low-amplitude so it reads as
+   ambient texture, not motion that competes with content. */
+.showcase-curve {
+  transform-box: view-box;
+  transform-origin: center;
+  animation: showcase-drift 22s ease-in-out infinite alternate;
+}
+@keyframes showcase-drift {
+  0% {
+    transform: translateY(-10px) scaleY(0.98);
+    opacity: 0.55;
+  }
+  100% {
+    transform: translateY(10px) scaleY(1.02);
+    opacity: 1;
+  }
+}
+
+/* ScrollReelTestimonials (components/ui/scroll-reel-testimonials.tsx).
+   char-rise/exit animate the featured quote; up/down drive the two
+   counter-rotating reel columns (content doubled, track moves -50%). */
+@keyframes scroll-reel-char-rise {
+  from {
+    opacity: 0;
+    transform: translateY(0.6em);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes scroll-reel-exit {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-0.5em);
+  }
+}
+@keyframes scroll-reel-up {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-50%);
+  }
+}
+@keyframes scroll-reel-down {
+  from {
+    transform: translateY(-50%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Rich text (CMS-authored Tiptap content, rendered server-side)
+   --------------------------------------------------------------------------- */
+.rich-text {
+  @apply space-y-6 leading-relaxed text-white/75;
+}
+.rich-text h2 {
+  @apply font-display text-2xl font-semibold text-white;
+}
+.rich-text h3 {
+  @apply font-display text-xl font-semibold text-white;
+}
+.rich-text h4 {
+  @apply font-display text-lg font-semibold text-white;
+}
+.rich-text a {
+  @apply text-brand-glow hover:underline;
+}
+.rich-text ul {
+  @apply list-disc space-y-2 pl-6;
+}
+.rich-text ol {
+  @apply list-decimal space-y-2 pl-6;
+}
+.rich-text blockquote {
+  @apply border-l-2 border-brand-glow/50 pl-5 font-display text-lg text-white/80;
+}
+.rich-text img {
+  @apply my-2 max-w-full rounded-2xl;
+}
+.rich-text pre {
+  @apply overflow-x-auto rounded-xl bg-white/[0.05] p-4 text-sm;
+}
+.rich-text code {
+  @apply rounded bg-white/[0.08] px-1.5 py-0.5 text-sm;
+}
+.rich-text hr {
+  @apply border-white/10;
+}

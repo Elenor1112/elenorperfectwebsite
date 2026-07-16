@@ -1,0 +1,182 @@
+/* BrandOrbit — minimal, borderless orbit.
+   The word "elenor." floats naked in the center; small circular client-logo
+   orbs glide around it on one shared elliptical ring. No container box, no backdrop,
+   no chrome. Motion is driven by a single rAF loop in the component (exact
+   trig positions, eased pause) — this file only handles layout and looks. */
+
+.brand-orbit {
+  /* Scaled to dominate its section: radius spreads orbs wide across the
+     viewport, orbs and center text scale fluidly with viewport width. */
+  --orbit-radius: clamp(140px, 22vw, 320px);
+  --orbiter-size: clamp(50px, 6.5vw, 110px);
+
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  /* Taller so the wide outer scatter (orbs reach well past the stage box, up
+     and down) has room to breathe and isn't clipped by adjacent sections. */
+  min-height: 80vh;
+  padding: 4vh 0;
+  /* Fully transparent — renders over whatever background sits behind it. */
+  background: transparent;
+}
+
+/* The stage: an --orbit-radius square the orbs are positioned around. Orbs
+   intentionally overflow it (±radius horizontally) — no clipping. */
+.brand-orbit__stage {
+  position: relative;
+  width: var(--orbit-radius);
+  height: var(--orbit-radius);
+}
+
+/* Hover hit-zone that eases the drift to a stop (see component). It spans the
+   whole scatter field — wide enough to cover the outermost orb homes (~1.9×
+   radius each way) plus a margin — centered over the stage and sitting behind
+   the orbs. It only detects enter/leave; it must never block the orbs, so it
+   stays at the bottom of the stack. */
+.brand-orbit__hitzone {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: calc(var(--orbit-radius) * 4.2);
+  height: calc(var(--orbit-radius) * 3.2);
+  transform: translate(-50%, -50%);
+  z-index: 0;
+  border-radius: 50%;
+}
+
+/* --- Center wordmark: naked white text, no circle/glow/backdrop --- */
+.brand-orbit__center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  /* Orbs get z-index 0–100 by depth (component), so the wordmark sits mid
+     stack: back-half orbs slide behind the text, front-half pass over it. */
+  z-index: 50;
+  transform: translate(-50%, -50%);
+  white-space: nowrap;
+  font-family: var(--font-display, system-ui, -apple-system, 'Segoe UI', sans-serif);
+  /* Headline-scale, not an icon. */
+  font-weight: 800;
+  font-size: clamp(3rem, 8vw, 7rem);
+  letter-spacing: -0.03em;
+  color: #fff;
+  /* The headline's bounding box is huge and sits centered over the orbit
+     plane; without this it silently eats pointer events, leaving orbs that
+     pass near the center unhoverable (dead zones). */
+  pointer-events: none;
+}
+
+/* --- Orbiters --- */
+/* Square positioning box centered on the stage; the component moves it with
+   translate3d + scale each frame. Only the round orb inside catches the
+   pointer — letting the wrapper pass events through means its square corners
+   (and any overlap with a neighbour) don't create dead spots or steal a hover
+   meant for the orb behind them. */
+.brand-orbit__orbiter {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: var(--orbiter-size);
+  height: var(--orbiter-size);
+  margin: calc(var(--orbiter-size) / -2) 0 0 calc(var(--orbiter-size) / -2);
+  pointer-events: none;
+  /* Transform + opacity change every frame — keep them on the compositor. */
+  will-change: transform, opacity;
+}
+
+.brand-orbit__orb {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-weight: 700;
+  font-size: clamp(0.75rem, 2vw, 1.25rem);
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+  user-select: none;
+  cursor: pointer;
+  position: relative;
+  /* Re-enable events here (the wrapper opts out) so the round orb is the one
+     element that catches the pointer. */
+  pointer-events: auto;
+  /* The hover pop scales the orb itself, independent of the wrapper's
+     per-frame depth scale, so the two compose cleanly. */
+  transform: scale(1);
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+/* Logo orbs have no puck — the artwork floats transparent. A brand-specific
+   `color` (inline style from the component) can still add one, e.g. for
+   white-on-transparent artwork like Ericsson's. */
+
+/* The logo scales with the orb and never touches the circle's edge; contain
+   keeps wide wordmarks (and tall marks) fully visible. */
+.brand-orbit__logo {
+  width: 80%;
+  height: 80%;
+  object-fit: contain;
+}
+
+/* Hover / keyboard focus: pop the orb to 1.3× and lift it above siblings. */
+.brand-orbit__orb:hover,
+.brand-orbit__orb:focus-visible {
+  transform: scale(1.3);
+  box-shadow: 0 6px 22px rgba(0, 0, 0, 0.5), 0 0 18px rgba(104, 202, 214, 0.35);
+  outline: none;
+}
+
+/* Tooltip with the brand name, revealed on hover/focus. */
+.brand-orbit__tooltip {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 4px 10px;
+  border-radius: 6px;
+  background: rgba(10, 10, 15, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+  z-index: 30;
+}
+
+.brand-orbit__orb:hover .brand-orbit__tooltip,
+.brand-orbit__orb:focus-visible .brand-orbit__tooltip {
+  opacity: 1;
+}
+
+/* --- Static fallback (reduced motion): plain centered row, no motion --- */
+.brand-orbit__grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.25rem;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+}
+
+.brand-orbit__grid .brand-orbit__center {
+  position: static;
+  transform: none;
+}
+
+.brand-orbit__grid .brand-orbit__orb {
+  width: var(--orbiter-size);
+  height: var(--orbiter-size);
+  flex: 0 0 auto;
+}
+
+/* Responsive scaling is handled by the clamp() radius/size vars above, so the
+   orbit shrinks gracefully with the viewport without hard breakpoint jumps. */

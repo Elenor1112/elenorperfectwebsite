@@ -1,0 +1,329 @@
+'use client';
+
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import Image, { type StaticImageData } from 'next/image';
+import './BrandOrbit.css';
+
+import elenorLogo from '@/assets/elenor final logo-01.png';
+import abcLogo from '@/assets/Orbs/ABC.png';
+import alNesrAlJawhariLogo from '@/assets/Orbs/Al-Nesr Al-Jawhari.png';
+import cocaColaLogo from '@/assets/Orbs/Coca-Cola.png';
+import commvaultLogo from '@/assets/Orbs/Commvault.png';
+import duravitLogo from '@/assets/Orbs/Duravit.png';
+import globalGroupLogo from '@/assets/Orbs/GLOBAL GROUP.png';
+import goBusLogo from '@/assets/Orbs/Go-Bus.png';
+import gskLogo from '@/assets/Orbs/GSK.png';
+import saintGobainLogo from '@/assets/Orbs/Saint-Gobain.png';
+import zoetisLogo from '@/assets/Orbs/Zoetis.png';
+
+export interface Brand {
+  name: string;
+  /** Short label shown in the orb, e.g. "Z", "ae". Defaults to initials. */
+  label?: string;
+  /** Logo rendered inside the orb; takes precedence over label/initials. */
+  logo?: StaticImageData | string;
+  /** Colour for the circular orb background (the puck behind the logo). */
+  color?: string;
+  /**
+   * Multiplies this orb's size (logo included). Used to visually balance
+   * brands whose wide wordmark logos read smaller than rounder marks, or that
+   * drew a small pseudo-random scale.
+   */
+  sizeBoost?: number;
+}
+
+export interface BrandOrbitProps {
+  /** Client brands to orbit. Falls back to placeholders when omitted. */
+  brands?: Brand[];
+  /** Center text. Defaults to "elenor." */
+  centerText?: string;
+  className?: string;
+}
+
+// Default orbiters — white client logos floating transparent.
+const FALLBACK_BRANDS: Brand[] = [
+  { name: 'Zoetis', logo: zoetisLogo },
+  { name: 'Duravit', logo: duravitLogo },
+  // These three draw the smallest pseudo-random scales AND carry wide wordmark
+  // logos, so unboosted they read far smaller than e.g. Coca-Cola (~1.02).
+  // Boosts land them at ~1.1 — a touch above, to offset the wide-logo optics.
+  { name: 'Saint-Gobain', logo: saintGobainLogo, sizeBoost: 1.4 },
+  { name: 'GSK', logo: gskLogo, sizeBoost: 1.4 },
+  { name: 'Commvault', logo: commvaultLogo, sizeBoost: 1.3 },
+  { name: 'Coca-Cola', logo: cocaColaLogo },
+  { name: 'Global Group', logo: globalGroupLogo },
+  { name: 'ABC Hospital', logo: abcLogo },
+  { name: 'Go-Bus', logo: goBusLogo },
+  { name: 'Al-Nesr Al-Jawhari', logo: alNesrAlJawhariLogo },
+];
+
+// Initials fallback when a brand has no explicit label, e.g. "Saint-Gobain" → "SG".
+function initials(name: string): string {
+  return name
+    .split(/[\s-]+/)
+    .slice(0, 2)
+    .map((w) => w[0]?.toUpperCase() ?? '')
+    .join('');
+}
+
+// One full revolution around "elenor." takes this long (shared by all orbs).
+const ORBIT_DURATION_S = 40;
+// Ring radii as fractions of the base radius. All orbs share this single
+// elliptical path — evenly spaced, turning together — wide across the section
+// and flatter vertically, like a planetary orbit seen at a tilt. The vertical
+// radius is capped by the section's room (min-h-[80vh] in the hero).
+const SPREAD_X = 1.9;
+const SPREAD_Y = 0.85;
+// Size range across orbs.
+const SCALE_MIN = 0.7;
+const SCALE_MAX = 1.15;
+
+// Deterministic pseudo-random in [0,1) from an integer seed. Stable across
+// SSR and client so the first-paint scatter matches the rAF loop's scatter —
+// no hydration jump.
+function hash01(seed: number): number {
+  const x = Math.sin(seed * 127.1 + 43.7) * 43758.5453;
+  return x - Math.floor(x);
+}
+
+// Orbit parameters for orb i of `count`: every orb shares the same ring, with
+// start angles spread evenly around the circle (like clock marks) so spacing
+// stays uniform as the ring turns. Size stays pseudo-random.
+function orbHome(i: number, count: number) {
+  return {
+    angle: (i / count) * Math.PI * 2,
+    sizeScale: SCALE_MIN + hash01(i * 5 + 3) * (SCALE_MAX - SCALE_MIN),
+  };
+}
+
+// Position/scale/opacity for orb i at time t (seconds): steady motion around
+// the center wordmark on the one shared elliptical ring. All orbs share one
+// angular speed, so the formation turns together as a plain rotation.
+function orbPose(t: number, i: number, count: number) {
+  const h = orbHome(i, count);
+  const a = h.angle + (t * Math.PI * 2) / ORBIT_DURATION_S;
+  return {
+    x: Math.cos(a) * SPREAD_X,
+    y: Math.sin(a) * SPREAD_Y,
+    scale: h.sizeScale,
+    opacity: 1,
+    zIndex: Math.round(h.sizeScale * 50),
+  };
+}
+
+// Naked center logo — no circle, border, glow, or backdrop. Just the mark.
+function CenterMark({ text }: { text: string }) {
+  return (
+    <Image
+      src={elenorLogo}
+      alt={text}
+      className="brand-orbit__center"
+      // Rendered at ~56.7rem max; keeps next/image (sharp) serving a small
+      // variant instead of the 3508px source.
+      sizes="1100px"
+      priority
+      style={{ width: 'clamp(24.3rem, 59.4vw, 56.7rem)', height: 'auto' }}
+      draggable={false}
+    />
+  );
+}
+
+function BrandOrb({
+  brand,
+  style,
+  onMouseEnter,
+  onMouseLeave,
+}: {
+  brand: Brand;
+  style?: CSSProperties;
+  onMouseEnter?: () => void;
+  onMouseLeave?: () => void;
+}) {
+  return (
+    <span
+      className={`brand-orbit__orb${brand.logo ? ' brand-orbit__orb--logo' : ''}`}
+      style={
+        brand.color || style
+          ? { ...(brand.color ? { backgroundColor: brand.color } : undefined), ...style }
+          : undefined
+      }
+      role="img"
+      aria-label={brand.name}
+      tabIndex={0}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
+    >
+      {brand.logo ? (
+        // Decorative inside a role="img" span that already carries the label.
+        <Image
+          src={brand.logo}
+          alt=""
+          className="brand-orbit__logo"
+          sizes="150px"
+          draggable={false}
+        />
+      ) : (
+        brand.label ?? initials(brand.name)
+      )}
+      <span className="brand-orbit__tooltip" role="tooltip">
+        {brand.name}
+      </span>
+    </span>
+  );
+}
+
+export function BrandOrbit({
+  brands,
+  centerText = 'elenor',
+  className = '',
+}: BrandOrbitProps) {
+  const list = brands && brands.length > 0 ? brands : FALLBACK_BRANDS;
+
+  // Detect prefers-reduced-motion on the client so we can render a static grid.
+  // Starts false (SSR default = animated) and syncs after mount.
+  const [reduceMotion, setReduceMotion] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+    setReduceMotion(mq.matches);
+    const onChange = (e: MediaQueryListEvent) => setReduceMotion(e.matches);
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, []);
+
+  const stageRef = useRef<HTMLDivElement | null>(null);
+  const orbiterRefs = useRef<(HTMLDivElement | null)[]>([]);
+  // Pause flag lives in a ref: the rAF loop reads it every frame, and flipping
+  // it must not re-render (a re-render would reset inline transforms).
+  const pausedRef = useRef(false);
+
+  // Single rAF loop drives the whole system. The orbs ride one shared ellipse
+  // around the center wordmark, evenly spaced. The loop advances an
+  // elapsed-time clock, eased toward a stop on hover so the orbits decelerate
+  // smoothly instead of hard-freezing.
+  useEffect(() => {
+    if (reduceMotion) return;
+    const stage = stageRef.current;
+    if (!stage) return;
+
+    // Stage is an --orbit-radius square, so its width *is* the radius.
+    let radius = stage.offsetWidth;
+    const ro = new ResizeObserver(() => {
+      radius = stage.offsetWidth;
+    });
+    ro.observe(stage);
+
+    let clock = 0; // eased elapsed seconds driving the float
+    let speed = 1; // time multiplier, eased to 0 on hover
+    let last = performance.now();
+    let raf = 0;
+
+    const frame = (now: number) => {
+      // Clamp dt so a background-tab gap doesn't teleport the orbs.
+      const dt = Math.min((now - last) / 1000, 0.05);
+      last = now;
+
+      // Ease the time multiplier toward the target: hovering eases the drift to
+      // a stop, and leaving spins it back up gently.
+      const target = pausedRef.current ? 0 : 1;
+      speed += (target - speed) * Math.min(1, dt * 5);
+      clock += speed * dt;
+
+      for (let i = 0; i < list.length; i++) {
+        const el = orbiterRefs.current[i];
+        if (!el) continue;
+        const p = orbPose(clock, i, list.length);
+        const scale = p.scale * (list[i].sizeBoost ?? 1);
+        el.style.transform = `translate3d(${(p.x * radius).toFixed(2)}px, ${(p.y * radius).toFixed(2)}px, 0) scale(${scale.toFixed(3)})`;
+        el.style.opacity = p.opacity.toFixed(3);
+        el.style.zIndex = String(p.zIndex);
+      }
+      raf = requestAnimationFrame(frame);
+    };
+    raf = requestAnimationFrame(frame);
+
+    return () => {
+      cancelAnimationFrame(raf);
+      ro.disconnect();
+    };
+  }, [reduceMotion, list.length]);
+
+  // Static fallback: center text + orbs in a plain row, no motion.
+  if (reduceMotion) {
+    return (
+      <div className={`brand-orbit ${className}`} aria-label="Elenor and client brands">
+        <div className="brand-orbit__grid">
+          <CenterMark text={centerText} />
+          {list.map((brand) => (
+            <BrandOrb
+              key={brand.name}
+              brand={brand}
+              style={
+                brand.sizeBoost
+                  ? {
+                      width: `calc(var(--orbiter-size) * ${brand.sizeBoost})`,
+                      height: `calc(var(--orbiter-size) * ${brand.sizeBoost})`,
+                    }
+                  : undefined
+              }
+            />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className={`brand-orbit ${className}`} aria-label="Elenor and client brands">
+      <div
+        ref={stageRef}
+        className="brand-orbit__stage"
+        // Pause while any orb holds keyboard focus so the focused orb (and its
+        // tooltip) stays put.
+        onFocusCapture={() => (pausedRef.current = true)}
+        onBlurCapture={() => (pausedRef.current = false)}
+      >
+        {/* Hover hit-zone covering the whole scatter field, so drifting near
+            any orb eases the drift to a stop. By the time the cursor reaches an
+            orb it's stationary — a reliable hover target with no dead points.
+            Sits behind the orbs and only listens for enter/leave. */}
+        <div
+          className="brand-orbit__hitzone"
+          onMouseEnter={() => (pausedRef.current = true)}
+          onMouseLeave={() => (pausedRef.current = false)}
+          aria-hidden
+        />
+        {list.map((brand, i) => {
+          // First-paint pose (before the rAF loop takes over, clock = 0),
+          // expressed via the CSS radius var so it's correct during
+          // SSR/hydration too.
+          const p = orbPose(0, i, list.length);
+          const scale = p.scale * (brand.sizeBoost ?? 1);
+          return (
+            <div
+              key={brand.name}
+              ref={(el) => {
+                orbiterRefs.current[i] = el;
+              }}
+              className="brand-orbit__orbiter"
+              style={{
+                transform: `translate(calc(${p.x.toFixed(4)} * var(--orbit-radius)), calc(${p.y.toFixed(4)} * var(--orbit-radius))) scale(${scale.toFixed(3)})`,
+                opacity: p.opacity,
+                zIndex: p.zIndex,
+              }}
+            >
+              {/* The orb sits on top of the hit-zone as a sibling, so landing
+                  on it fires the hit-zone's mouseleave — these handlers keep
+                  the orbit paused while the cursor is on a logo. */}
+              <BrandOrb
+                brand={brand}
+                onMouseEnter={() => (pausedRef.current = true)}
+                onMouseLeave={() => (pausedRef.current = false)}
+              />
+            </div>
+          );
+        })}
+        <CenterMark text={centerText} />
+      </div>
+    </div>
+  );
+}
