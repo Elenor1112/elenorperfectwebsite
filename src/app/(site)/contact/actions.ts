@@ -16,6 +16,7 @@ export async function submitLead(
   const email = String(formData.get('email') ?? '').trim();
   const company = String(formData.get('company') ?? '').trim();
   const phone = String(formData.get('phone') ?? '').trim();
+  const role = String(formData.get('role') ?? '').trim();
   const service = String(formData.get('service') ?? '').trim();
   const budget = String(formData.get('budget') ?? '').trim();
   const message = String(formData.get('message') ?? '').trim();
@@ -24,8 +25,11 @@ export async function submitLead(
   if (honeypot) return { ok: true, message: 'Thanks — we’ll be in touch.' };
 
   if (name.length < 2) return { ok: false, message: 'Please enter your name.' };
+  if (company.length < 1) return { ok: false, message: 'Please enter your company.' };
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email))
     return { ok: false, message: 'Please enter a valid email address.' };
+  if (phone.length < 1) return { ok: false, message: 'Please enter your phone number.' };
+  if (role.length < 1) return { ok: false, message: 'Please enter your role.' };
   const services = await getServices();
   if (service && !services.some((s) => s.name === service))
     return { ok: false, message: 'Please choose a valid service.' };
@@ -38,6 +42,7 @@ export async function submitLead(
       email: email.slice(0, 200),
       company: company.slice(0, 200),
       phone: phone.slice(0, 50),
+      role: role.slice(0, 100),
       service: service.slice(0, 100),
       budget: budget.slice(0, 100),
       message: message.slice(0, 5000),

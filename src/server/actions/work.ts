@@ -70,6 +70,7 @@ export async function saveCaseStudy(input: CaseStudyInput): Promise<ActionResult
         label: gallery.label,
         serviceSlug: gallery.serviceSlug,
         sortOrder: g,
+        videoUrls: gallery.videoUrls,
       })
       .returning({ id: caseStudyGalleries.id });
     if (gallery.mediaIds.length > 0) {

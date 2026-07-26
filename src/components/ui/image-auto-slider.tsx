@@ -152,22 +152,34 @@ export const ImageAutoSlider = ({
               >
               {duplicatedSlides.map((slide, index) => {
                 const originalIndex = index % slides.length;
-                return (
+                const label = slide.alt ?? `Gallery image ${originalIndex + 1}`;
+                const cardClass =
+                  'image-auto-slider__item block h-48 w-48 flex-shrink-0 overflow-hidden rounded-xl shadow-2xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/70 md:h-64 md:w-64 lg:h-80 lg:w-80';
+                const inner = (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={slide.src}
+                    alt={label}
+                    className="h-full w-full object-cover"
+                    loading="lazy"
+                  />
+                );
+                // Only render an anchor when there's a real destination; an
+                // empty href produces a dead link that reloads the page.
+                return slide.href ? (
                   <Link
                     key={index}
-                    href={slide.href ?? ''}
+                    href={slide.href}
                     onClick={() => onCardClick?.(slide, originalIndex)}
-                    aria-label={slide.alt ?? `Gallery image ${originalIndex + 1}`}
-                    className="image-auto-slider__item block h-48 w-48 flex-shrink-0 cursor-pointer overflow-hidden rounded-xl shadow-2xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/70 md:h-64 md:w-64 lg:h-80 lg:w-80"
+                    aria-label={`View ${label} case study`}
+                    className={`${cardClass} cursor-pointer`}
                   >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={slide.src}
-                      alt={slide.alt ?? `Gallery image ${originalIndex + 1}`}
-                      className="h-full w-full object-cover"
-                      loading="lazy"
-                    />
+                    {inner}
                   </Link>
+                ) : (
+                  <div key={index} aria-label={label} className={cardClass}>
+                    {inner}
+                  </div>
                 );
               })}
               </div>

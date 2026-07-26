@@ -112,7 +112,7 @@ export const workSettingsSchema = z.object({
       'All',
       'Healthcare',
       'Pharmaceuticals',
-      'Real Estate',
+      'Real Estate & Constructions',
       'FMCG',
       'Food & Beverages',
       'Automotive',
@@ -123,7 +123,6 @@ export const workSettingsSchema = z.object({
       'Hospitality',
       'Industrial',
       'Telecommunications',
-      'Professional Services',
     ]),
 });
 export type WorkSettings = z.infer<typeof workSettingsSchema>;

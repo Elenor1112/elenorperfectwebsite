@@ -5,7 +5,7 @@ import { gsap } from 'gsap';
 
 const STORAGE_KEY = 'elenor_intro_seen';
 const PHRASE = 'Where Innovation Meets Quality.';
-const BRAND = 'Elenor';
+const BRAND = 'elenor';
 
 // Parser-blocking skip check, inlined right after the overlay markup: returning
 // visitors and reduced-motion users get `display:none` injected into <head>
@@ -73,9 +73,9 @@ export function IntroAnimation() {
 
     // Same shadow structure at zero-alpha so GSAP can interpolate the glow.
     const shadowOff =
-      '0 0 0px rgba(157,139,255,0), 0 0 0px rgba(111,92,255,0), 0 0 0px rgba(54,224,208,0)';
+      '0 0 0px rgba(104,202,214,0), 0 0 0px rgba(54,224,208,0), 0 0 0px rgba(54,224,208,0)';
     const shadowGlow =
-      '0 0 18px rgba(157,139,255,0.95), 0 0 55px rgba(111,92,255,0.6), 0 0 110px rgba(54,224,208,0.4)';
+      '0 0 18px rgba(104,202,214,0.95), 0 0 55px rgba(54,224,208,0.6), 0 0 110px rgba(54,224,208,0.4)';
 
     gsap.set(word, { textShadow: shadowOff });
     gsap.set(words, {

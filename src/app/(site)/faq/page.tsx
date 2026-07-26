@@ -40,26 +40,25 @@ export default async function FaqPage() {
       />
 
       <section className="py-20">
-        <div className="container-x max-w-3xl">
-          {hubCategories.map((c, i) => (
-            <div key={c.slug} className={i === 0 ? undefined : 'mt-12'}>
-              <h2 className="font-display text-2xl font-semibold">{c.name}</h2>
-              <div className="mt-6">
-                <FaqList items={c.faqs} />
-              </div>
-            </div>
-          ))}
-
-          {services.map((s) =>
-            s.faq.length > 0 ? (
-              <div key={s.slug} className="mt-12">
-                <h2 className="font-display text-2xl font-semibold">{s.name}</h2>
+        <div className="container-x max-w-6xl">
+          {/* Category blocks in a 2-column grid — laid out row by row (1 2 /
+              3 4 …) so each pair's headline aligns across the row. `items-start`
+              lets a taller block grow without stretching its shorter neighbour. */}
+          <div className="grid grid-cols-1 items-start gap-x-8 gap-y-12 md:grid-cols-2">
+            {[
+              ...hubCategories.map((c) => ({ key: c.slug, name: c.name, faqs: c.faqs })),
+              ...services
+                .filter((s) => s.faq.length > 0)
+                .map((s) => ({ key: s.slug, name: s.name, faqs: s.faq })),
+            ].map((block) => (
+              <div key={block.key}>
+                <h2 className="font-display text-2xl font-semibold">{block.name}</h2>
                 <div className="mt-6">
-                  <FaqList items={s.faq} />
+                  <FaqList items={block.faqs} />
                 </div>
               </div>
-            ) : null,
-          )}
+            ))}
+          </div>
         </div>
       </section>
 

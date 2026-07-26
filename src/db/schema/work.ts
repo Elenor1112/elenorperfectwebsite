@@ -25,7 +25,12 @@ export const caseStudies = pgTable(
     id: uuid('id').primaryKey().defaultRandom(),
     slug: text('slug').notNull().unique(),
     client: text('client').notNull(),
+    // Primary industry — shown on the card badge and used as the detail-page label.
     industry: text('industry').default('').notNull(),
+    // Every industry this study should surface under in the /work filter. Always
+    // contains `industry`; extra entries let one study appear in several filters
+    // (e.g. Coca-Cola under both FMCG and Industrial).
+    industries: text('industries').array().default([]).notNull(),
     // Service display names as shown on cards; categories mirror the showcase
     // filter values (existing site convention).
     services: text('services').array().default([]).notNull(),
@@ -56,6 +61,9 @@ export const caseStudyGalleries = pgTable('case_study_galleries', {
   label: text('label').notNull(),
   serviceSlug: text('service_slug'),
   sortOrder: integer('sort_order').default(0).notNull(),
+  // YouTube video URLs (unlisted uploads) shown alongside this gallery's
+  // images — avoids self-hosting heavy video files through Blob storage.
+  videoUrls: text('video_urls').array().default([]).notNull(),
 });
 
 export const caseStudyGalleryImages = pgTable(

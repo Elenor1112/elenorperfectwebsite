@@ -114,6 +114,7 @@ export default async function CaseStudyPage({ params }: { params: { slug: string
                       id: g.serviceSlug ?? g.id,
                       label: g.label,
                       images: g.images.map((img) => img.url),
+                      videoUrls: g.videoUrls,
                     })),
                   }}
                 />

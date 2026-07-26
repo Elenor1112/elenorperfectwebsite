@@ -15,7 +15,77 @@ import {
 import { SortableContext, arrayMove, rectSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { PickerDialog, type PickedMedia } from './media/MediaPicker';
-import { Button } from './ui';
+import { Button, Input } from './ui';
+import { youtubeThumbnailUrl } from '@/lib/youtube';
+
+export function GalleryVideoEditor({
+  value,
+  onChange,
+}: {
+  value: string[];
+  onChange: (urls: string[]) => void;
+}) {
+  const [draft, setDraft] = useState('');
+
+  const add = () => {
+    const url = draft.trim();
+    if (!url || value.includes(url)) return;
+    onChange([...value, url]);
+    setDraft('');
+  };
+
+  return (
+    <div>
+      <div className="flex gap-2">
+        <Input
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              add();
+            }
+          }}
+          placeholder="https://youtu.be/…"
+          aria-label="YouTube video URL"
+        />
+        <Button type="button" variant="secondary" size="sm" onClick={add}>
+          Add video
+        </Button>
+      </div>
+      {value.length > 0 ? (
+        <div className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-6">
+          {value.map((url) => {
+            const thumb = youtubeThumbnailUrl(url);
+            return (
+              <div
+                key={url}
+                className="group relative aspect-video overflow-hidden rounded-lg border border-white/10 bg-white/[0.04]"
+              >
+                {thumb ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={thumb} alt="" loading="lazy" className="h-full w-full object-cover" />
+                ) : (
+                  <p className="flex h-full items-center justify-center px-2 text-center text-[10px] text-white/40">
+                    Unrecognized URL
+                  </p>
+                )}
+                <button
+                  type="button"
+                  aria-label="Remove video"
+                  onClick={() => onChange(value.filter((u) => u !== url))}
+                  className="absolute right-1.5 top-1.5 rounded-md bg-black/70 p-1 opacity-0 transition hover:bg-red-500 group-hover:opacity-100"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      ) : null}
+    </div>
+  );
+}
 
 export function GalleryEditor({
   value,

@@ -2,11 +2,14 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getService, getServiceSlugs } from '@/lib/data/services';
+import { getServiceShowcaseImages, getServiceShowcaseVideo } from '@/lib/data/work';
 import { getSiteSettings } from '@/lib/data/settings';
 import { serviceSchema, faqSchema, breadcrumbSchema } from '@/lib/schema';
 import { JsonLd } from '@/components/JsonLd';
 import { FaqList } from '@/components/FaqList';
 import { ServiceIcon } from '@/components/three/ServiceIcon';
+import { ServicePhotoSlider } from '@/components/ServicePhotoSlider';
+import { YouTubeEmbed } from '@/components/YouTubeEmbed';
 import { Reveal } from '@/components/Reveal';
 import { CTA } from '@/components/sections/CTA';
 import { RichText } from '@/lib/richtext/render';
@@ -43,8 +46,20 @@ export async function generateMetadata({
 }
 
 export default async function ServiceDetail({ params }: { params: { slug: string } }) {
-  const [s, site] = await Promise.all([getService(params.slug), getSiteSettings()]);
+  const [s, site, showcaseImages, showcaseVideo] = await Promise.all([
+    getService(params.slug),
+    getSiteSettings(),
+    getServiceShowcaseImages(params.slug).catch(() => []),
+    getServiceShowcaseVideo(params.slug).catch(() => null),
+  ]);
   if (!s) notFound();
+
+  // Hero visual: the service's own curated CMS gallery takes priority when set,
+  // so an editor can hand-pick exactly which images the slider shows. When the
+  // service gallery is empty we fall back to real client work (case-study
+  // galleries tagged with this service), and only then to the decorative 3D icon.
+  const ownGallery = s.gallery.map((g) => ({ url: g.url, alt: g.alt, client: '' }));
+  const sliderImages = ownGallery.length > 0 ? ownGallery : showcaseImages;
 
   const crumbs = [
     { name: 'Home', path: '/' },
@@ -82,7 +97,18 @@ export default async function ServiceDetail({ params }: { params: { slug: string
               <Link href="/work" className="btn-ghost">See related work</Link>
             </div>
           </div>
-          <ServiceIcon shape={toShape(s.icon)} accent={s.accent} />
+          {sliderImages.length > 0 ? (
+            <ServicePhotoSlider images={sliderImages} serviceName={s.name} />
+          ) : showcaseVideo ? (
+            // A single client video (synced from a case study) stands in for the
+            // decorative 3D icon when this service has one — e.g. AI & Motion
+            // Graphics leads with its Coca-Cola motion piece.
+            <div className="w-full overflow-hidden rounded-3xl glass p-2">
+              <YouTubeEmbed url={showcaseVideo.url} title={`${s.name} — ${showcaseVideo.client}`} />
+            </div>
+          ) : (
+            <ServiceIcon shape={toShape(s.icon)} accent={s.accent} />
+          )}
         </div>
       </section>
 

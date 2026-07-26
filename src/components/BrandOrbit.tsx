@@ -5,16 +5,17 @@ import Image, { type StaticImageData } from 'next/image';
 import './BrandOrbit.css';
 
 import elenorLogo from '@/assets/elenor final logo-01.png';
-import abcLogo from '@/assets/Orbs/ABC.png';
-import alNesrAlJawhariLogo from '@/assets/Orbs/Al-Nesr Al-Jawhari.png';
-import cocaColaLogo from '@/assets/Orbs/Coca-Cola.png';
-import commvaultLogo from '@/assets/Orbs/Commvault.png';
-import duravitLogo from '@/assets/Orbs/Duravit.png';
-import globalGroupLogo from '@/assets/Orbs/GLOBAL GROUP.png';
-import goBusLogo from '@/assets/Orbs/Go-Bus.png';
-import gskLogo from '@/assets/Orbs/GSK.png';
-import saintGobainLogo from '@/assets/Orbs/Saint-Gobain.png';
-import zoetisLogo from '@/assets/Orbs/Zoetis.png';
+import abcLogo from '@/assets/Orbs Colors/ABC-Logo.png';
+import alNesrAlJawhariLogo from '@/assets/Orbs Colors/image_2025-01-22_115953.png';
+import cocaColaLogo from '@/assets/Orbs Colors/image_2025-01-22_120110.png';
+import commvaultLogo from '@/assets/Orbs Colors/CVLT US Size Business Cards Landscape CS4 (op)-03.png';
+import duravitLogo from '@/assets/Orbs Colors/Duravit-Logo.png';
+import globalGroupLogo from '@/assets/Orbs Colors/GLOBAL GROUP Logo.png';
+import goBusLogo from '@/assets/Orbs Colors/Go_bus_logo.png';
+import gskLogo from '@/assets/Orbs Colors/gsk-company.png';
+import saintGobainLogo from '@/assets/Orbs Colors/Saint-Gobain.png';
+import dotsLogo from '@/assets/Orbs Colors/Vector Smart Object.png';
+import zoetisLogo from '@/assets/Orbs Colors/Zoetis.png';
 
 export interface Brand {
   name: string;
@@ -41,20 +42,23 @@ export interface BrandOrbitProps {
 }
 
 // Default orbiters — white client logos floating transparent.
+// Solid white puck for logos that need contrast against dark or colorful
+// artwork; the rest render on a fully transparent puck.
+const ORB_WHITE = '#ffffff';
+const ORB_NONE = 'transparent';
+
 const FALLBACK_BRANDS: Brand[] = [
-  { name: 'Zoetis', logo: zoetisLogo },
-  { name: 'Duravit', logo: duravitLogo },
-  // These three draw the smallest pseudo-random scales AND carry wide wordmark
-  // logos, so unboosted they read far smaller than e.g. Coca-Cola (~1.02).
-  // Boosts land them at ~1.1 — a touch above, to offset the wide-logo optics.
-  { name: 'Saint-Gobain', logo: saintGobainLogo, sizeBoost: 1.4 },
-  { name: 'GSK', logo: gskLogo, sizeBoost: 1.4 },
-  { name: 'Commvault', logo: commvaultLogo, sizeBoost: 1.3 },
-  { name: 'Coca-Cola', logo: cocaColaLogo },
-  { name: 'Global Group', logo: globalGroupLogo },
-  { name: 'ABC Hospital', logo: abcLogo },
-  { name: 'Go-Bus', logo: goBusLogo },
-  { name: 'Al-Nesr Al-Jawhari', logo: alNesrAlJawhariLogo },
+  { name: 'Zoetis', logo: zoetisLogo, color: ORB_NONE },
+  { name: 'Duravit', logo: duravitLogo, color: ORB_WHITE },
+  { name: 'DOTS', logo: dotsLogo, color: ORB_NONE },
+  { name: 'Saint-Gobain', logo: saintGobainLogo, color: ORB_WHITE },
+  { name: 'GSK', logo: gskLogo, color: ORB_NONE },
+  { name: 'Commvault', logo: commvaultLogo, color: ORB_WHITE },
+  { name: 'Coca-Cola', logo: cocaColaLogo, color: ORB_NONE },
+  { name: 'Global Group', logo: globalGroupLogo, color: ORB_WHITE },
+  { name: 'ABC Hospital', logo: abcLogo, color: ORB_NONE },
+  { name: 'Go-Bus', logo: goBusLogo, color: ORB_NONE },
+  { name: 'Al-Nesr Al-Jawhari', logo: alNesrAlJawhariLogo, color: ORB_WHITE },
 ];
 
 // Initials fallback when a brand has no explicit label, e.g. "Saint-Gobain" → "SG".
@@ -74,25 +78,18 @@ const ORBIT_DURATION_S = 40;
 // radius is capped by the section's room (min-h-[80vh] in the hero).
 const SPREAD_X = 1.9;
 const SPREAD_Y = 0.85;
-// Size range across orbs.
-const SCALE_MIN = 0.7;
-const SCALE_MAX = 1.15;
-
-// Deterministic pseudo-random in [0,1) from an integer seed. Stable across
-// SSR and client so the first-paint scatter matches the rAF loop's scatter —
-// no hydration jump.
-function hash01(seed: number): number {
-  const x = Math.sin(seed * 127.1 + 43.7) * 43758.5453;
-  return x - Math.floor(x);
-}
+// Every orb renders at this same base size (matches GSK's former effective
+// size — its 0.847 pseudo-random draw × its 1.4 sizeBoost). Per-brand
+// `sizeBoost` still multiplies on top of this for logos that need it.
+const SCALE_UNIFORM = 1.186;
 
 // Orbit parameters for orb i of `count`: every orb shares the same ring, with
 // start angles spread evenly around the circle (like clock marks) so spacing
-// stays uniform as the ring turns. Size stays pseudo-random.
+// stays uniform as the ring turns.
 function orbHome(i: number, count: number) {
   return {
     angle: (i / count) * Math.PI * 2,
-    sizeScale: SCALE_MIN + hash01(i * 5 + 3) * (SCALE_MAX - SCALE_MIN),
+    sizeScale: SCALE_UNIFORM,
   };
 }
 
@@ -120,9 +117,13 @@ function CenterMark({ text }: { text: string }) {
       className="brand-orbit__center"
       // Rendered at ~56.7rem max; keeps next/image (sharp) serving a small
       // variant instead of the 3508px source.
-      sizes="1100px"
+      sizes="1900px"
       priority
-      style={{ width: 'clamp(24.3rem, 59.4vw, 56.7rem)', height: 'auto' }}
+      // 2× the previous size (24.3rem / 59.4vw / 56.7rem). The fluid term is
+      // held at 100vw rather than a literal 118.8vw: doubling it would make the
+      // mark wider than the screen at any width below ~1500px. min() keeps the
+      // lower bound from overflowing narrow viewports for the same reason.
+      style={{ width: 'clamp(min(48.6rem, 100vw), 100vw, 113.4rem)', height: 'auto' }}
       draggable={false}
     />
   );

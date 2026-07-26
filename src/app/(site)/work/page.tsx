@@ -3,6 +3,7 @@ import { PageShell } from '@/components/PageShell';
 import { WorkGallery } from '@/components/WorkGallery';
 import { CTA } from '@/components/sections/CTA';
 import { getCaseStudies, getRosterClients } from '@/lib/data/work';
+import { getClientLogo } from '@/lib/data/client-logos';
 import { getWorkSettings } from '@/lib/data/settings';
 import { hubPageMetadata } from '@/lib/data/seo';
 
@@ -36,7 +37,9 @@ export default async function WorkPage() {
             caseStudies={caseStudies.map((c) => ({
               slug: c.slug,
               client: c.client,
+              logo: getClientLogo(c.client),
               industry: c.industry,
+              industries: c.industries,
               services: c.services,
               result: c.result,
             }))}

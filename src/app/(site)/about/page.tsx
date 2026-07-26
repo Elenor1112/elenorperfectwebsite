@@ -44,7 +44,7 @@ export default async function AboutPage() {
       />
 
       <section className="py-24">
-        <div className="container-x grid gap-16 lg:grid-cols-[1.2fr_1fr]">
+        <div className="container-x flex flex-col gap-6">
           {enabled('ceo_quote') ? (
             <Reveal className="rounded-3xl glass p-9">
               <p className="eyebrow">{quote.data.eyebrow}</p>
@@ -58,7 +58,7 @@ export default async function AboutPage() {
           ) : null}
 
           {enabled('story') ? (
-            <Reveal delay={120}>
+            <Reveal delay={120} className="rounded-3xl glass p-9">
               <h2 className="font-display text-3xl font-semibold leading-tight">
                 {story.data.heading}
               </h2>

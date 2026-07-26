@@ -6,7 +6,12 @@ import Link from 'next/link';
 export type WorkCard = {
   slug: string;
   client: string;
+  /** Client logo descriptor, or `null` when no matching asset exists. */
+  logo: { url: string; lightMark: boolean } | null;
+  /** Primary industry — the badge shown on the card. */
   industry: string;
+  /** Every industry this study filters under; always includes `industry`. */
+  industries: string[];
   services: string[];
   result: string;
 };
@@ -27,7 +32,7 @@ export function WorkGallery({
 }) {
   const [filter, setFilter] = useState<string>('All');
   const shown =
-    filter === 'All' ? caseStudies : caseStudies.filter((c) => c.industry === filter);
+    filter === 'All' ? caseStudies : caseStudies.filter((c) => c.industries.includes(filter));
   const rosterShown =
     filter === 'All'
       ? clientRoster
@@ -62,16 +67,40 @@ export function WorkGallery({
               className={`pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-gradient-to-br ${tints[i % tints.length]} to-transparent opacity-70 blur-2xl`}
             />
             <div className="relative flex items-center justify-between">
+              {/* Under a specific filter, badge the industry being filtered on —
+                  a study matched via a secondary industry would otherwise show
+                  an unrelated primary (Coca-Cola as "FMCG" under Industrial). */}
               <span className="text-xs uppercase tracking-[0.18em] text-brand-cyan">
-                {c.industry}
+                {filter !== 'All' && c.industries.includes(filter) ? filter : c.industry}
               </span>
               <span className="text-xs text-white/30 transition-transform duration-300 group-hover:translate-x-1">
                 →
               </span>
             </div>
-            <h2 className="relative mt-5 font-display text-2xl font-semibold transition-colors group-hover:text-brand-glow md:text-3xl">
-              {c.client}
-            </h2>
+            <div className="relative mt-5 flex items-center gap-3">
+              {c.logo && (
+                <span
+                  className={`flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-xl p-1.5 ring-1 shadow-sm ${
+                    c.logo.lightMark
+                      ? 'bg-white/[0.08] ring-white/15'
+                      : 'bg-white/90 ring-white/10'
+                  }`}
+                >
+                  <img
+                    src={c.logo.url}
+                    alt={`${c.client} logo`}
+                    width={44}
+                    height={44}
+                    loading="lazy"
+                    decoding="async"
+                    className="h-full w-full object-contain"
+                  />
+                </span>
+              )}
+              <h2 className="font-display text-2xl font-semibold transition-colors group-hover:text-brand-glow md:text-3xl">
+                {c.client}
+              </h2>
+            </div>
             <p className="relative mt-3 flex-1 text-sm leading-relaxed text-white/60">
               {c.result}
             </p>

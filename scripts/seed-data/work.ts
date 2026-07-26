@@ -5,7 +5,13 @@
 export type CaseStudy = {
   slug: string;
   client: string;
+  /** Primary industry — the badge shown on the /work card. */
   industry: string;
+  /**
+   * Extra industries this study also filters under on /work, beyond `industry`.
+   * e.g. Coca-Cola is primarily FMCG but also shows under Industrial.
+   */
+  industries?: string[];
   services: string[];
   // Filter tags for the services showcase grid. Mirrors `services` (the service
   // names a case study is tagged with) as a dedicated, explicit field so the
@@ -31,7 +37,7 @@ export const industries = [
   'All',
   'Healthcare',
   'Pharmaceuticals',
-  'Real Estate',
+  'Real Estate & Constructions',
   'FMCG',
   'Food & Beverages',
   'Automotive',
@@ -41,8 +47,7 @@ export const industries = [
   'Home Appliances',
   'Hospitality',
   'Industrial',
-  'Telecommunications',
-  'Professional Services',
+  'Tech',
 ] as const;
 
 // Clients shown in the industry filter that don't have a case study page yet —
@@ -55,16 +60,11 @@ export type RosterClient = {
 
 export const clientRoster: RosterClient[] = [
   // Healthcare
-  { name: 'Mental Joy', industries: ['Healthcare'] },
-  { name: 'ABC Hospital', industries: ['Healthcare', 'Real Estate'] },
   { name: 'IBSA Derma', industries: ['Healthcare'] },
   { name: 'VCC', industries: ['Healthcare'] },
   // Automotive
-  { name: 'Auto Group', industries: ['Automotive'] },
   { name: 'Four Whales', industries: ['Automotive'] },
-  { name: 'Pro-Sign', industries: ['Automotive'] },
   // Production
-  { name: 'Videology', industries: ['Production'] },
   { name: 'Icon', industries: ['Production'] },
   // Law Firms
   { name: 'H&Z Law Firm', industries: ['Law Firms'] },
@@ -73,21 +73,10 @@ export const clientRoster: RosterClient[] = [
   { name: 'GSK', industries: ['Pharmaceuticals'] },
   { name: 'Rose Beauty', industries: ['Pharmaceuticals'] },
   { name: 'MDI', industries: ['Pharmaceuticals'] },
-  // Institutions
-  { name: 'Nemo', industries: ['Institutions'] },
-  { name: 'ICES', industries: ['Institutions'] },
-  { name: 'AISEC', industries: ['Institutions'] },
-  { name: 'Moataz Makki', industries: ['Institutions'] },
-  // Home Appliances
-  { name: 'ROBEK', industries: ['Home Appliances'] },
-  // Real Estate
-  { name: 'iCity', industries: ['Real Estate'] },
-  { name: 'CBRE', industries: ['Real Estate'] },
-  { name: 'Cube Plaza', industries: ['Real Estate'] },
-  { name: 'Land Bank', industries: ['Real Estate'] },
-  { name: 'Better Life', industries: ['Real Estate'] },
-  // FMCG
-  { name: 'New Alex', industries: ['FMCG'] },
+  // Real Estate & Constructions
+  { name: 'iCity', industries: ['Real Estate & Constructions'] },
+  { name: 'Land Bank', industries: ['Real Estate & Constructions'] },
+  { name: 'Better Life', industries: ['Real Estate & Constructions'] },
 ];
 
 export const caseStudies: CaseStudy[] = [
@@ -103,32 +92,32 @@ export const caseStudies: CaseStudy[] = [
   {
     slug: 'al-nesr-al-jawhari',
     client: 'Al-Nesr Al-Jawhari',
-    industry: 'Professional Services',
-    services: ['Brand Identity', 'Web & App Development', 'Interior Design', 'Printing & Production'],
-    categories: ['Brand Identity', 'Web & App Development', 'Interior Design', 'Printing & Production'],
+    industry: 'FMCG',
+    services: ['Brand Identity', 'Web & App Development', 'Interior Design', 'Printing & Production', 'Giveaways'],
+    categories: ['Brand Identity', 'Web & App Development', 'Interior Design', 'Printing & Production', 'Giveaways'],
     result: 'A unified brand identity and a fast, mobile-first web presence built from scratch.',
   },
   {
     slug: 'zoetis-social',
     client: 'Zoetis',
     industry: 'Healthcare',
-    services: ['Social Media'],
-    categories: ['Social Media'],
-    result: 'A consistent, scientifically-credible social presence across multiple platforms.',
+    services: ['Social Media', 'Giveaways'],
+    categories: ['Social Media', 'Giveaways'],
+    result: 'A consistent, scientifically-credible social presence across multiple platforms, extended into branded giveaways.',
   },
   {
     slug: 'saint-gobain-social',
     client: 'Saint-Gobain',
     industry: 'Industrial',
-    services: ['Social Media', 'Printing & Production'],
-    categories: ['Social Media', 'Printing & Production'],
+    services: ['Social Media', 'Printing & Production', 'Giveaways'],
+    categories: ['Social Media', 'Printing & Production', 'Giveaways'],
     result:
       'An on-brand, consistent social presence for a global building-materials leader — extended into print and production.',
   },
   {
     slug: 'emaar-brand',
     client: 'Emaar',
-    industry: 'Real Estate',
+    industry: 'Real Estate & Constructions',
     services: ['Brand Identity'],
     categories: ['Brand Identity'],
     result: 'A cohesive brand identity applied across print, apparel, and on-site collateral.',
@@ -177,10 +166,11 @@ export const caseStudies: CaseStudy[] = [
     slug: 'coca-cola',
     client: 'Coca-Cola',
     industry: 'FMCG',
-    services: ['Event Planning', 'Giveaways', 'Printing & Production'],
-    categories: ['Event Planning', 'Giveaways', 'Printing & Production'],
+    industries: ['Industrial'],
+    services: ['Event Planning', 'Giveaways', 'Printing & Production', 'Interior Design'],
+    categories: ['Event Planning', 'Giveaways', 'Printing & Production', 'Interior Design'],
     result:
-      'Events, branded giveaways, and on-site production delivered end to end at global-brand standard.',
+      'Events, branded giveaways, interior fit-out, and on-site production delivered end to end at global-brand standard.',
   },
   {
     slug: 'blend-house',
@@ -210,7 +200,7 @@ export const caseStudies: CaseStudy[] = [
   {
     slug: 'sirgona-brand',
     client: 'Sirgona',
-    industry: 'Real Estate',
+    industry: 'Real Estate & Constructions',
     services: ['Brand Identity', 'Printing & Production'],
     categories: ['Brand Identity', 'Printing & Production'],
     result: 'A real-estate brand identity carried through into print and production collateral.',
@@ -218,7 +208,7 @@ export const caseStudies: CaseStudy[] = [
   {
     slug: 'ericsson-printing',
     client: 'Ericsson',
-    industry: 'Telecommunications',
+    industry: 'Tech',
     services: ['Printing & Production'],
     categories: ['Printing & Production'],
     result:
@@ -228,6 +218,7 @@ export const caseStudies: CaseStudy[] = [
     slug: 'global-napi-video',
     client: 'Global Napi',
     industry: 'Pharmaceuticals',
+    industries: ['Industrial'],
     services: ['Video Production'],
     categories: ['Video Production'],
     result:
@@ -274,6 +265,110 @@ export const caseStudies: CaseStudy[] = [
     categories: ['Printing & Production'],
     result: 'Precise, on-brand printing and production for a global pharmaceutical leader.',
   },
+  {
+    slug: 'nemo-brand',
+    client: 'Nemo',
+    industry: 'Institutions',
+    services: ['Brand Identity'],
+    categories: ['Brand Identity'],
+    result: 'A distinctive brand identity built from the ground up.',
+  },
+  {
+    slug: 'pro-sign-social',
+    client: 'Pro-Sign',
+    industry: 'Automotive',
+    services: ['Social Media'],
+    categories: ['Social Media'],
+    result: 'On-brand social content that makes an automotive protection brand stand out.',
+  },
+  {
+    slug: 'robek-brand',
+    client: 'ROBEK',
+    industry: 'Home Appliances',
+    services: ['Brand Identity'],
+    categories: ['Brand Identity'],
+    result: 'A clean, modern brand identity for a home-appliances brand.',
+  },
+  {
+    slug: 'new-alex-brand',
+    client: 'New Alex',
+    industry: 'FMCG',
+    services: ['Brand Identity'],
+    categories: ['Brand Identity'],
+    result: 'A fresh FMCG brand identity carried across packaging and collateral.',
+  },
+  {
+    slug: 'ices-web',
+    client: 'ICES',
+    industry: 'Institutions',
+    services: ['Web & App Development'],
+    categories: ['Web & App Development'],
+    result: 'A fast, mobile-first web presence built from scratch.',
+  },
+  {
+    slug: 'aiesec-social',
+    client: 'AIESEC',
+    industry: 'Institutions',
+    services: ['Social Media'],
+    categories: ['Social Media'],
+    result: 'A consistent, on-brand social presence for a global youth organization.',
+  },
+  {
+    slug: 'mental-joy',
+    client: 'Mental Joy',
+    industry: 'Healthcare',
+    services: ['Brand Identity', 'Social Media'],
+    categories: ['Brand Identity', 'Social Media'],
+    result:
+      'A warm mental-health brand identity extended into a relatable, on-brand social presence.',
+  },
+  {
+    slug: 'auto-group-social',
+    client: 'Auto Group',
+    industry: 'Automotive',
+    services: ['Social Media'],
+    categories: ['Social Media'],
+    result: 'On-brand social content for an automotive brand.',
+  },
+  {
+    slug: 'videology',
+    client: 'Videology',
+    industry: 'Production',
+    services: ['Brand Identity', 'Web & App Development'],
+    categories: ['Brand Identity', 'Web & App Development'],
+    result:
+      'A full brand identity carried through into a fast, modern website and app for a production house.',
+  },
+  {
+    slug: 'cbre-interior',
+    client: 'CBRE',
+    industry: 'Real Estate & Constructions',
+    services: ['Interior Design'],
+    categories: ['Interior Design'],
+    result: 'A refined interior fit-out for a global commercial real-estate leader.',
+  },
+  {
+    slug: 'renaissance-hotel-interior',
+    client: 'Renaissance Hotel',
+    industry: 'Hospitality',
+    services: ['Interior Design'],
+    categories: ['Interior Design'],
+    result: 'A polished, hospitality-grade interior design brought to life across the property.',
+  },
+];
+
+// Explicit display order for /work and the home services showcase. Slugs listed
+// here sort first, in this order; anything not listed keeps its array order
+// after them. The client asked for these seven to lead (Coca-Cola, Duravit,
+// Zoetis, Al-Nesr Al-Jawhari, Pantogar, Saint-Gobain, Pfizer).
+export const caseStudyOrder: string[] = [
+  'coca-cola',
+  'duravit-event',
+  'zoetis-social',
+  'al-nesr-al-jawhari',
+  'pantogar-social',
+  'saint-gobain-social',
+  'pfizer-printing',
 ];
 
 export const getCaseStudy = (slug: string) => caseStudies.find((c) => c.slug === slug);
@@ -311,6 +406,12 @@ const IMAGE_COUNTS: Record<string, number> = {
   'coca-cola/event-planning': 32,
   'coca-cola/giveaways': 43,
   'coca-cola/printing-production': 28,
+  'coca-cola/interior-design': 9,
+  'renaissance-hotel/interior-design': 7,
+  'cbre/interior-design': 2,
+  'saint-gobain/giveaways': 1,
+  'zoetis/giveaways': 1,
+  'al-nesr-al-jawhari/giveaways': 1,
   'blend-house/brand-identity': 31,
   'blend-house/social-media': 9,
   'dots/brand-identity': 15,
@@ -319,7 +420,7 @@ const IMAGE_COUNTS: Record<string, number> = {
   'sirgona/printing-production': 5,
   'duravit/printing-production': 7,
   'ericsson/printing-production': 10,
-  'global-napi/video-production': 13,
+  'global-napi/video-production': 11,
   'pantogar/social-media': 5,
   'pfizer/printing-production': 5,
   'rizq/social-media': 7,
@@ -327,6 +428,17 @@ const IMAGE_COUNTS: Record<string, number> = {
   'saint-gobain/printing-production': 6,
   'simba/brand-identity': 6,
   'icy-miray/brand-identity': 3,
+  'nemo/brand-identity': 6,
+  'pro-sign/social-media': 5,
+  'robek/brand-identity': 5,
+  'new-alex/brand-identity': 7,
+  'ices/web-app-development': 4,
+  'aiesec/social-media': 5,
+  'mental-joy/brand-identity': 7,
+  'mental-joy/social-media': 6,
+  'auto-group/social-media': 3,
+  'videology/brand-identity': 7,
+  'videology/web-app-development': 4,
 };
 
 // File extension per gallery dir, for shots that aren't .jpg (e.g. PNG UI
@@ -338,6 +450,10 @@ const IMAGE_EXT: Record<string, string> = {
   'coca-cola/event-planning': 'webp',
   'coca-cola/giveaways': 'webp',
   'coca-cola/printing-production': 'webp',
+  // coca-cola/interior-design + cbre/interior-design + saint-gobain/giveaways default to 'jpg'
+  'renaissance-hotel/interior-design': 'webp',
+  'zoetis/giveaways': 'webp',
+  'al-nesr-al-jawhari/giveaways': 'png',
   'dots/brand-identity': 'webp',
   'duravit/printing-production': 'webp',
   'ericsson/printing-production': 'webp',
@@ -352,6 +468,17 @@ const IMAGE_EXT: Record<string, string> = {
   'sirgona/brand-identity': 'webp',
   'sirgona/printing-production': 'webp',
   'taza/brand-identity': 'webp',
+  'nemo/brand-identity': 'webp',
+  'pro-sign/social-media': 'webp',
+  'robek/brand-identity': 'webp',
+  'new-alex/brand-identity': 'webp',
+  'ices/web-app-development': 'webp',
+  'aiesec/social-media': 'webp',
+  'mental-joy/brand-identity': 'webp',
+  'mental-joy/social-media': 'webp',
+  'auto-group/social-media': 'webp',
+  'videology/brand-identity': 'webp',
+  'videology/web-app-development': 'webp',
 };
 
 export const getClientCaseStudy = (c: CaseStudy): ClientCaseStudy => ({

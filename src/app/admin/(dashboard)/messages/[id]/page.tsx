@@ -70,6 +70,12 @@ export default async function MessageDetailPage({ params }: { params: { id: stri
               <dd>{m.company}</dd>
             </div>
           ) : null}
+          {m.role ? (
+            <div>
+              <dt className="text-xs text-white/40">Role</dt>
+              <dd>{m.role}</dd>
+            </div>
+          ) : null}
           {m.service ? (
             <div>
               <dt className="text-xs text-white/40">Service interest</dt>

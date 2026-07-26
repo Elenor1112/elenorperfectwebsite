@@ -17,7 +17,7 @@ export const heroSchema = z.object({
   sub: z
     .string()
     .default(
-      'Elenor Marketing Agency is a full-service marketing and brand agency in Nasr City, Cairo. Since 2021 we have built brand identity, social, video, web, and events for 50+ clients including Coca-Cola, Saint-Gobain, Duravit, and Zoetis.',
+      'Since 2021, Elenor has crafted brand identity, social, video, web & events for 50+ clients — including Coca-Cola, Saint-Gobain, Duravit, and Zoetis.',
     ),
   primaryCta: cta('Start a project', '/contact'),
   secondaryCta: cta('See our work', '/work'),

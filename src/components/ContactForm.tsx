@@ -35,8 +35,8 @@ export function ContactForm({
           <input name="name" required className={field} placeholder="Your name" />
         </label>
         <label className="block">
-          <span className="mb-1.5 block text-xs text-white/50">Company</span>
-          <input name="company" className={field} placeholder="Company name" />
+          <span className="mb-1.5 block text-xs text-white/50">Company *</span>
+          <input name="company" required className={field} placeholder="Company name" />
         </label>
       </div>
 
@@ -46,8 +46,15 @@ export function ContactForm({
           <input name="email" type="email" required className={field} placeholder="you@company.com" />
         </label>
         <label className="block">
-          <span className="mb-1.5 block text-xs text-white/50">Phone</span>
-          <input name="phone" className={field} placeholder="+20 …" />
+          <span className="mb-1.5 block text-xs text-white/50">Phone *</span>
+          <input name="phone" required className={field} placeholder="+20 …" />
+        </label>
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <label className="block">
+          <span className="mb-1.5 block text-xs text-white/50">Role *</span>
+          <input name="role" required className={field} placeholder="e.g. Marketing Manager" />
         </label>
       </div>
 

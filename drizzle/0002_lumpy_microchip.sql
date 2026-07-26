@@ -1,0 +1,1 @@
+ALTER TABLE "case_study_galleries" ADD COLUMN "video_urls" text[] DEFAULT '{}' NOT NULL;

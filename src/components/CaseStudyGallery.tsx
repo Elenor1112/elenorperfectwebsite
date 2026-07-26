@@ -1,12 +1,14 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { YouTubeEmbed } from './YouTubeEmbed';
 
-// One service tab on a case study page: a label and the images shown under it.
+// One service tab on a case study page: a label and the media shown under it.
 export type ServiceGallery = {
   id: string;
   label: string;
   images: string[];
+  videoUrls?: string[];
 };
 
 export type ClientCaseStudy = {
@@ -121,6 +123,17 @@ export function CaseStudyGallery({ caseStudy }: CaseStudyGalleryProps) {
         aria-labelledby={`tab-${active.id}`}
         className="mt-8 animate-fade-in"
       >
+        {active.videoUrls && active.videoUrls.length > 0 ? (
+          <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
+            {active.videoUrls.map((url, i) => (
+              <YouTubeEmbed
+                key={url}
+                url={url}
+                title={`${clientName} — ${active.label}, video ${i + 1} of ${active.videoUrls!.length}`}
+              />
+            ))}
+          </div>
+        ) : null}
         <ul className="grid grid-cols-2 gap-4 md:grid-cols-3 md:gap-6 lg:grid-cols-4">
           {active.images.map((src, i) => {
             const alt = `${clientName} — ${active.label}, image ${i + 1} of ${active.images.length}`;

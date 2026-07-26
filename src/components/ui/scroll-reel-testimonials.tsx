@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useReducedMotion } from 'framer-motion';
+import { getClientLogo } from '@/lib/data/client-logos';
 
 // Testimonials with a counter-rotating "reel" of client tiles beside the
 // featured quote. Quotes auto-cycle every 4s; hovering pauses, leaving resumes
@@ -96,22 +97,40 @@ function ReelColumn({
           animationIterationCount: 'infinite',
         }}
       >
-        {doubled.map((name, i) => (
-          <div key={i} className="pb-3">
-            <div
-              className={[
-                'relative flex h-24 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br px-3 transition-shadow duration-500',
-                TILE_GRADIENTS[i % TILE_GRADIENTS.length],
-                name === highlight ? FEATURED_SHADOW : '',
-              ].join(' ')}
-            >
-              <div className="absolute inset-0 bg-ink/60" />
-              <span className="relative text-center font-display text-base font-semibold tracking-tight text-white/80">
-                {name}
-              </span>
+        {doubled.map((name, i) => {
+          const logo = getClientLogo(name);
+          return (
+            <div key={i} className="pb-3">
+              <div
+                className={[
+                  'relative flex h-24 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br px-3 transition-shadow duration-500',
+                  TILE_GRADIENTS[i % TILE_GRADIENTS.length],
+                  name === highlight ? FEATURED_SHADOW : '',
+                ].join(' ')}
+              >
+                <div className="absolute inset-0 bg-ink/60" />
+                {logo ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={logo.url}
+                    alt={name}
+                    loading="lazy"
+                    decoding="async"
+                    className={[
+                      'relative max-h-14 w-auto max-w-[80%] object-contain',
+                      logo.lightMark ? '' : 'brightness-0 invert',
+                    ].join(' ')}
+                  />
+                ) : (
+                  // Clients without a logo asset keep their name as text.
+                  <span className="relative text-center font-display text-base font-semibold tracking-tight text-white/80">
+                    {name}
+                  </span>
+                )}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

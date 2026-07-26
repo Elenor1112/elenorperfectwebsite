@@ -22,6 +22,7 @@ export default async function EditCaseStudyPage({ params }: { params: { id: stri
           galleries: {
             label: string;
             serviceSlug: string | null;
+            videoUrls: string[];
             images: { media: Media }[];
           }[];
         })
@@ -37,6 +38,8 @@ export default async function EditCaseStudyPage({ params }: { params: { id: stri
     slug: row.slug,
     client: row.client,
     industry: row.industry,
+    // The primary is implicit in the form's chip row; show only the extras.
+    industries: (row.industries ?? []).filter((i) => i !== row.industry),
     services: row.services,
     categories: row.categories,
     technologies: row.technologies,
@@ -52,6 +55,7 @@ export default async function EditCaseStudyPage({ params }: { params: { id: stri
     galleries: row.galleries.map((g) => ({
       label: g.label,
       serviceSlug: g.serviceSlug,
+      videoUrls: g.videoUrls ?? [],
       images: g.images
         .filter((i) => i.media)
         .map((i) => ({ id: i.media!.id, url: i.media!.url, alt: i.media!.alt })),

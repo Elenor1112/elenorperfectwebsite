@@ -1,8 +1,8 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
-import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 
 export type ShowcaseFilter = {
   name: string; // must match a case study `categories` value exactly
@@ -22,10 +22,16 @@ export type ShowcaseCard = {
 //  - Left 30%: sticky vertical list of services. Hover previews a filter;
 //    click locks it so it persists after mouseleave (click again to unlock,
 //    click another service to move the lock).
-//  - Right 70%: masonry grid of case-study cards. Non-matching cards fade back;
-//    matching cards animate in with a staggered slide-up.
-// All cards are always in the DOM (filtering only toggles visibility/opacity),
-// so the section stays fully crawlable. `active === null` shows everything.
+//  - Right 70%: 2-column grid of case-study cards that fade + rise in on scroll.
+//    Hovering/locking a service reorders the matching cards to the FRONT and
+//    animates the non-matching ones out (only matches remain) — the original
+//    reorder behaviour, back again.
+//
+// Perf: this stays smooth with 30+ cards because Framer only tracks the visible
+// (matching) set, we use `layout="position"` (translate-only, no size FLIP),
+// and animate transform + opacity only — no animated blur. At rest (`active ===
+// null`) every card renders in its original order, so the section is fully
+// crawlable.
 
 // A gradient "cover" per card, keyed by its first category, so cards read as
 // distinct image tiles without needing real assets yet.
@@ -70,6 +76,33 @@ const PILL: Record<string, string> = {
 };
 const PILL_FALLBACK = 'border-white/25 text-white/70';
 
+// Reveal cards once, when the grid first scrolls into view. One shared
+// IntersectionObserver on the grid container (not one per card) keeps the
+// mount reveal cheap; it disconnects after firing.
+function useInView<T extends Element>(margin = '0px 0px -10% 0px') {
+  const ref = useRef<T | null>(null);
+  const [inView, setInView] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || typeof IntersectionObserver === 'undefined') {
+      setInView(true);
+      return;
+    }
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          setInView(true);
+          io.disconnect();
+        }
+      },
+      { rootMargin: margin },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [margin]);
+  return { ref, inView };
+}
+
 export function ServicesShowcase({
   eyebrow,
   heading,
@@ -89,24 +122,22 @@ export function ServicesShowcase({
   const reduce = useReducedMotion();
 
   const active = hovered ?? locked;
+  const { ref: gridRef, inView } = useInView<HTMLDivElement>();
 
   const toggle = (name: string) =>
     setLocked((cur) => (cur === name ? null : name));
 
-  // Order cards so matching ones come first when a filter is active — keeps the
-  // masonry visually tight and lets the stagger read top-to-bottom.
-  const ordered = useMemo(() => {
-    if (!active) return cards;
-    return [...cards].sort((a, b) => {
-      const am = a.categories.includes(active) ? 0 : 1;
-      const bm = b.categories.includes(active) ? 0 : 1;
-      return am - bm;
-    });
-  }, [active, cards]);
+  // When a service is active, show only its matching cards (non-matching ones
+  // animate out) so the matches read as reordered to the front. No active
+  // filter → every card, in its original order.
+  const visible = useMemo(
+    () => (active ? cards.filter((c) => c.categories.includes(active)) : cards),
+    [active, cards],
+  );
 
   return (
     <section
-      className="relative z-10 overflow-hidden py-24 md:py-32"
+      className="relative z-10 overflow-hidden pb-24 pt-8 md:pb-32 md:pt-12"
       aria-label="Our work by service"
     >
       <CurvedLines />
@@ -186,82 +217,94 @@ export function ServicesShowcase({
             </div>
           </div>
 
-          {/* RIGHT — masonry grid of case-study cards */}
-          <div className="lg:w-[70%]">
-            <motion.div
-              layout={!reduce}
-              className="columns-1 gap-5 sm:columns-2 [column-fill:_balance]"
-            >
-              {ordered.map((card, i) => {
-                const matches = !active || card.categories.includes(active);
-                const primary = card.categories[0];
-                const cover = COVERS[primary] ?? COVER_FALLBACK;
-                const coverImage = card.coverImageUrl;
-                return (
-                  <motion.article
-                    key={card.slug}
-                    layout={!reduce}
-                    initial={false}
-                    animate={{
-                      opacity: matches ? 1 : 0.18,
-                      y: 0,
-                      filter: matches ? 'blur(0px)' : 'blur(1px)',
-                    }}
-                    transition={{
-                      duration: 0.5,
-                      delay: reduce ? 0 : (matches ? Math.min(i, 8) * 0.05 : 0),
-                      ease: [0.16, 1, 0.3, 1],
-                    }}
-                    className="mb-5 break-inside-avoid"
-                  >
-                    <Link
-                      href={`/work/${card.slug}`}
-                      className="group block overflow-hidden rounded-3xl glass transition-transform duration-500 hover:-translate-y-1"
-                    >
-                      {/* Cover with a diagonal cutout corner (top-right) */}
-                      <div
-                        className={`relative aspect-[4/3] bg-gradient-to-br ${cover}`}
-                        style={{
-                          clipPath:
-                            'polygon(0 0, calc(100% - 2.5rem) 0, 100% 2.5rem, 100% 100%, 0 100%)',
-                        }}
-                      >
-                        {coverImage && (
-                          <img
-                            src={coverImage}
-                            alt={`${card.client} — ${primary}`}
-                            loading="lazy"
-                            decoding="async"
-                            className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
-                          />
-                        )}
-                        <div className="absolute inset-0 bg-ink/25 mix-blend-multiply" />
-                        <span className="absolute bottom-4 left-5 font-display text-lg font-semibold text-white/90 drop-shadow">
-                          {card.client}
-                        </span>
-                      </div>
+          {/* RIGHT — 2-column grid of case-study cards. CSS Grid (not masonry
+              columns) so cards flow left-to-right, top-to-bottom: 1 2 / 3 4.
+              Falls back to a single column on mobile.
 
-                      <div className="p-5">
-                        <h3 className="font-display text-base font-semibold leading-snug text-white/90">
-                          {card.result}
-                        </h3>
-                        <div className="mt-4 flex flex-wrap gap-2">
-                          {card.categories.slice(0, 2).map((c) => (
-                            <span
-                              key={c}
-                              className={`rounded-full border px-3 py-1 text-xs font-medium ${
-                                PILL[c] ?? PILL_FALLBACK
-                              }`}
-                            >
-                              {c}
-                            </span>
-                          ))}
+              Animations are back, but done cheaply — transform + opacity only
+              (GPU-composited), driven by CSS transitions with a per-card
+              transition-delay for the top-to-bottom stagger. No card reorder,
+              no Framer `layout` FLIP, and no animated blur; those were what made
+              hovering across the service list janky with 30+ cards. Cards keep a
+              fixed DOM order:
+                • mount: fade + rise in when the grid scrolls into view
+                • filter: matching cards lift forward, non-matching settle back. */}
+          <div ref={gridRef} className="lg:w-[70%]">
+            <motion.div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+              <AnimatePresence mode="popLayout" initial={false}>
+                {visible.map((card, i) => {
+                  const primary = card.categories[0];
+                  const cover = COVERS[primary] ?? COVER_FALLBACK;
+                  const coverImage = card.coverImageUrl;
+                  // Stagger reads top-to-bottom; capped so later cards don't lag.
+                  const delay = reduce ? 0 : Math.min(i, 8) * 0.04;
+                  return (
+                    <motion.article
+                      key={card.slug}
+                      // `layout="position"` slides a card to its new grid slot
+                      // (translate only — no expensive size FLIP) when the
+                      // visible set reorders.
+                      layout={reduce ? false : 'position'}
+                      initial={{ opacity: 0, y: 24, scale: 0.98 }}
+                      animate={inView ? { opacity: 1, y: 0, scale: 1 } : { opacity: 0, y: 24, scale: 0.98 }}
+                      exit={{ opacity: 0, scale: 0.9 }}
+                      transition={{
+                        duration: 0.45,
+                        delay,
+                        ease: [0.16, 1, 0.3, 1],
+                        layout: { duration: 0.45, ease: [0.16, 1, 0.3, 1] },
+                      }}
+                      className="h-full will-change-transform"
+                    >
+                      <Link
+                        href={`/work/${card.slug}`}
+                        className="group block overflow-hidden rounded-3xl glass transition-transform duration-500 hover:-translate-y-1"
+                      >
+                        {/* Cover with a diagonal cutout corner (top-right) */}
+                        <div
+                          className={`relative aspect-[4/3] bg-gradient-to-br ${cover}`}
+                          style={{
+                            clipPath:
+                              'polygon(0 0, calc(100% - 2.5rem) 0, 100% 2.5rem, 100% 100%, 0 100%)',
+                          }}
+                        >
+                          {coverImage && (
+                            <img
+                              src={coverImage}
+                              alt={`${card.client} — ${primary}`}
+                              loading="lazy"
+                              decoding="async"
+                              className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+                            />
+                          )}
+                          <div className="absolute inset-0 bg-ink/25 mix-blend-multiply" />
+                          <span className="absolute bottom-4 left-5 font-display text-lg font-semibold text-white/90 drop-shadow">
+                            {card.client}
+                          </span>
                         </div>
-                      </div>
-                    </Link>
-                  </motion.article>
-                );
-              })}
+
+                        <div className="p-5">
+                          <h3 className="font-display text-base font-semibold leading-snug text-white/90">
+                            {card.result}
+                          </h3>
+                          <div className="mt-4 flex flex-wrap gap-2">
+                            {card.categories.slice(0, 2).map((c) => (
+                              <span
+                                key={c}
+                                className={`rounded-full border px-3 py-1 text-xs font-medium ${
+                                  PILL[c] ?? PILL_FALLBACK
+                                }`}
+                              >
+                                {c}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      </Link>
+                    </motion.article>
+                  );
+                })}
+              </AnimatePresence>
             </motion.div>
           </div>
         </div>

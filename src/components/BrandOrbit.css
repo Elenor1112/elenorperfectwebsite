@@ -98,6 +98,9 @@
   font-weight: 700;
   font-size: clamp(0.75rem, 2vw, 1.25rem);
   color: #fff;
+  /* Inline `backgroundColor` (brand.color, set per-brand in the component)
+     overrides this via higher specificity. */
+  background: #26ccc2;
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
   user-select: none;
   cursor: pointer;
@@ -111,8 +114,8 @@
   transition: transform 0.25s ease, box-shadow 0.25s ease;
 }
 
-/* Logo orbs have no puck — the artwork floats transparent. A brand-specific
-   `color` (inline style from the component) can still add one, e.g. for
+/* Every orb gets the #26CCC2 puck by default; a brand-specific `color`
+   (inline style from the component) overrides it, e.g. for
    white-on-transparent artwork like Ericsson's. */
 
 /* The logo scales with the orb and never touches the circle's edge; contain

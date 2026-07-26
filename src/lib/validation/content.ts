@@ -61,10 +61,18 @@ export const metricSchema = z.object({
   value: z.string().min(1).max(60),
 });
 
+// YouTube watch/share/embed/shorts URL — validated loosely, the embed helper
+// (youtubeEmbedId) is what actually needs to parse it.
+export const youtubeUrlSchema = z
+  .string()
+  .url()
+  .regex(/(?:youtube\.com|youtu\.be)\//, 'Must be a YouTube URL');
+
 export const galleryInputSchema = z.object({
   label: z.string().min(1, 'Gallery label required').max(120),
   serviceSlug: z.string().max(120).nullable().default(null),
   mediaIds: z.array(z.string().uuid()).default([]),
+  videoUrls: z.array(youtubeUrlSchema).max(20).default([]),
 });
 
 export const caseStudyInputSchema = z.object({
@@ -72,6 +80,9 @@ export const caseStudyInputSchema = z.object({
   slug: slugSchema,
   client: z.string().min(1, 'Client required').max(200),
   industry: z.string().max(120).default(''),
+  // Additional industries this study also appears under in the /work filter.
+  // `industry` is folded in below, so callers only list the extras.
+  industries: z.array(z.string().min(1).max(120)).default([]),
   services: z.array(z.string().min(1).max(120)).default([]),
   categories: z.array(z.string().min(1).max(120)).default([]),
   technologies: z.array(z.string().min(1).max(120)).default([]),
@@ -91,8 +102,17 @@ export const caseStudyInputSchema = z.object({
   status: contentStatusSchema.default('published'),
   galleries: z.array(galleryInputSchema).default([]),
   seo: seoInputSchema.prefault({}),
-});
-export type CaseStudyInput = z.infer<typeof caseStudyInputSchema>;
+})
+  // Keep the two industry columns consistent: `industries` always leads with the
+  // primary `industry`, deduped, so the /work filter can match on it alone.
+  .transform((cs) => ({
+    ...cs,
+    industries: [...new Set([cs.industry, ...cs.industries])].filter(Boolean),
+  }));
+// Callers (the admin form) send the pre-transform shape; the parsed result is
+// what the server action writes.
+export type CaseStudyInput = z.input<typeof caseStudyInputSchema>;
+export type ParsedCaseStudyInput = z.output<typeof caseStudyInputSchema>;
 
 /* ---------------------------------- posts ---------------------------------- */
 

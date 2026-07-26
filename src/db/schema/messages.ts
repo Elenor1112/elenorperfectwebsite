@@ -10,6 +10,7 @@ export const contactMessages = pgTable(
     email: text('email').notNull(),
     company: text('company').default('').notNull(),
     phone: text('phone').default('').notNull(),
+    role: text('role').default('').notNull(),
     service: text('service').default('').notNull(),
     budget: text('budget').default('').notNull(),
     message: text('message').notNull(),

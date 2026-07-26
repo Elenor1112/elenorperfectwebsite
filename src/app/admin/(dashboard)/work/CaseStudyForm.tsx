@@ -13,7 +13,7 @@ import type { RichTextDoc } from '@/db/schema';
 import { Button, Card, Field, Input, PageHeader, Select, Switch, Textarea } from '@/components/admin/ui';
 import { StringListEditor } from '@/components/admin/StringListEditor';
 import { MediaPicker, type PickedMedia } from '@/components/admin/media/MediaPicker';
-import { GalleryEditor } from '@/components/admin/GalleryEditor';
+import { GalleryEditor, GalleryVideoEditor } from '@/components/admin/GalleryEditor';
 import { SeoFieldset, type SeoValue, emptySeo } from '@/components/admin/SeoFieldset';
 import { useAutosave, SaveStatusLabel } from '@/components/admin/useAutosave';
 
@@ -25,13 +25,20 @@ const RichTextEditor = dynamic(
 const slugify = (s: string) =>
   s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
 
-export type GalleryValue = { label: string; serviceSlug: string | null; images: PickedMedia[] };
+export type GalleryValue = {
+  label: string;
+  serviceSlug: string | null;
+  images: PickedMedia[];
+  videoUrls: string[];
+};
 
 export type CaseStudyFormValue = {
   id?: string;
   slug: string;
   client: string;
   industry: string;
+  /** Extra industries this study also filters under, beyond the primary. */
+  industries: string[];
   services: string[];
   categories: string[];
   technologies: string[];
@@ -50,6 +57,7 @@ export const emptyCaseStudy: CaseStudyFormValue = {
   slug: '',
   client: '',
   industry: '',
+  industries: [],
   services: [],
   categories: [],
   technologies: [],
@@ -70,6 +78,7 @@ function toInput(v: CaseStudyFormValue): CaseStudyInput {
     slug: v.slug,
     client: v.client,
     industry: v.industry,
+    industries: v.industries.filter(Boolean),
     services: v.services.filter(Boolean),
     categories: (v.categories.length > 0 ? v.categories : v.services).filter(Boolean),
     technologies: v.technologies.filter(Boolean),
@@ -86,6 +95,7 @@ function toInput(v: CaseStudyFormValue): CaseStudyInput {
         label: g.label,
         serviceSlug: g.serviceSlug ?? slugify(g.label),
         mediaIds: g.images.map((i) => i.id),
+        videoUrls: g.videoUrls,
       })),
     seo: {
       seoTitle: v.seo.seoTitle,
@@ -135,12 +145,20 @@ export function CaseStudyForm({
     if (!isNew) notify();
   };
 
+  const toggleIndustry = (name: string) => {
+    const industries = value.industries.includes(name)
+      ? value.industries.filter((i) => i !== name)
+      : [...value.industries, name];
+    setValue((cur) => ({ ...cur, industries }));
+    if (!isNew) notify();
+  };
+
   const toggleService = (name: string) => {
     const has = value.services.includes(name);
     const services = has ? value.services.filter((s) => s !== name) : [...value.services, name];
     let galleries = value.galleries;
     if (!has && !galleries.some((g) => g.label === name)) {
-      galleries = [...galleries, { label: name, serviceSlug: slugify(name), images: [] }];
+      galleries = [...galleries, { label: name, serviceSlug: slugify(name), images: [], videoUrls: [] }];
     }
     setValue((cur) => ({ ...cur, services, categories: services, galleries }));
     if (!isNew) notify();
@@ -197,8 +215,20 @@ export function CaseStudyForm({
             </Field>
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Industry">
-              <Select value={value.industry} onChange={(e) => set('industry', e.target.value)}>
+            <Field label="Industry" hint="shown on the card badge">
+              <Select
+                value={value.industry}
+                onChange={(e) => {
+                  const next = e.target.value;
+                  setValue((v) => ({
+                    ...v,
+                    industry: next,
+                    // The primary is implicit — never list it as an extra too.
+                    industries: v.industries.filter((i) => i !== next),
+                  }));
+                  if (!isNew) notify();
+                }}
+              >
                 <option value="">Select…</option>
                 {industries
                   .filter((i) => i !== 'All')
@@ -215,6 +245,32 @@ export function CaseStudyForm({
               </Select>
             </Field>
           </div>
+          <Field
+            label="Also appears under"
+            hint="optional — extra industry filters on /work, beyond the primary above"
+          >
+            <div className="flex flex-wrap gap-2">
+              {industries
+                .filter((i) => i !== 'All' && i !== value.industry)
+                .map((name) => {
+                  const active = value.industries.includes(name);
+                  return (
+                    <button
+                      key={name}
+                      type="button"
+                      onClick={() => toggleIndustry(name)}
+                      className={`rounded-full border px-3 py-1.5 text-xs transition ${
+                        active
+                          ? 'border-brand bg-brand/15 text-brand-glow'
+                          : 'border-white/15 text-white/60 hover:border-white/40'
+                      }`}
+                    >
+                      {name}
+                    </button>
+                  );
+                })}
+            </div>
+          </Field>
           <Field label="Result / summary" hint="the one-liner shown on cards and at the top of the page">
             <Textarea value={value.result} onChange={(e) => set('result', e.target.value)} rows={2} />
           </Field>
@@ -290,13 +346,27 @@ export function CaseStudyForm({
                     )
                   }
                 />
+                <div className="mt-4 border-t border-white/10 pt-4">
+                  <p className="mb-2 text-xs text-white/40">
+                    Videos — pasted YouTube links (unlisted works fine), shown before the images on this tab.
+                  </p>
+                  <GalleryVideoEditor
+                    value={g.videoUrls}
+                    onChange={(videoUrls) =>
+                      set(
+                        'galleries',
+                        value.galleries.map((x, j) => (j === i ? { ...x, videoUrls } : x)),
+                      )
+                    }
+                  />
+                </div>
               </div>
             ))}
             <Button
               variant="secondary"
               size="sm"
               onClick={() =>
-                set('galleries', [...value.galleries, { label: 'New gallery', serviceSlug: null, images: [] }])
+                set('galleries', [...value.galleries, { label: 'New gallery', serviceSlug: null, images: [], videoUrls: [] }])
               }
             >
               Add gallery

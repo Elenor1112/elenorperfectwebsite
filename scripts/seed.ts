@@ -18,7 +18,12 @@ import { sectionSchemas, type SectionType } from '../src/lib/validation/sections
 // Original static content (relocated from src/content — kept as seed data).
 import { site, stats as siteStats } from './seed-data/site';
 import { services as serviceData } from './seed-data/services';
-import { caseStudies as caseStudyData, clientRoster, industries } from './seed-data/work';
+import {
+  caseStudies as caseStudyData,
+  caseStudyOrder,
+  clientRoster,
+  industries,
+} from './seed-data/work';
 import { posts as postData } from './seed-data/posts';
 import { testimonials as testimonialData } from './seed-data/testimonials';
 
@@ -104,11 +109,22 @@ const COVER_IMAGES: Record<string, string> = {
   'sirgona-brand': '/assets/sirgona/cover.webp',
   'ericsson-printing': '/assets/ericsson/cover.webp',
   'global-napi-video': '/assets/global-napi/cover.webp',
-  'pantogar-social': '/assets/pantogar/social-media/01.webp',
+  'pantogar-social': '/assets/pantogar/cover.webp',
   'pfizer-printing': '/assets/pfizer/printing-production/01.webp',
   rizq: '/assets/rizq/cover.webp',
   'simba-brand': '/assets/simba/cover.webp',
   'icy-miray-brand': '/assets/icy-miray/cover.webp',
+  'nemo-brand': '/assets/nemo/brand-identity/01.webp',
+  'pro-sign-social': '/assets/pro-sign/social-media/01.webp',
+  'robek-brand': '/assets/robek/brand-identity/01.webp',
+  'new-alex-brand': '/assets/new-alex/brand-identity/01.webp',
+  'ices-web': '/assets/ices/web-app-development/01.webp',
+  'aiesec-social': '/assets/aiesec/social-media/01.webp',
+  'mental-joy': '/assets/mental-joy/brand-identity/01.webp',
+  'auto-group-social': '/assets/auto-group/social-media/01.webp',
+  videology: '/assets/videology/brand-identity/03.webp',
+  'cbre-interior': '/assets/cbre/interior-design/01.jpg',
+  'renaissance-hotel-interior': '/assets/renaissance-hotel/interior-design/01.webp',
 };
 
 // 3D icon shape per service slug (from services/[slug]/page.tsx).
@@ -321,13 +337,24 @@ async function seedServices() {
 }
 
 async function seedWork(mediaByUrl: Map<string, string>) {
+  // Apply the explicit lead order (caseStudyOrder) first, then everything else
+  // in its source array order, so sortOrder matches the intended display order.
+  const orderedData = [...caseStudyData].sort((a, b) => {
+    const ai = caseStudyOrder.indexOf(a.slug);
+    const bi = caseStudyOrder.indexOf(b.slug);
+    const an = ai === -1 ? caseStudyOrder.length + caseStudyData.indexOf(a) : ai;
+    const bn = bi === -1 ? caseStudyOrder.length + caseStudyData.indexOf(b) : bi;
+    return an - bn;
+  });
   const inserted = await db
     .insert(schema.caseStudies)
     .values(
-      caseStudyData.map((c, i) => ({
+      orderedData.map((c, i) => ({
         slug: c.slug,
         client: c.client,
         industry: c.industry,
+        // Primary first, then any extras — matches caseStudyInputSchema's shape.
+        industries: [...new Set([c.industry, ...(c.industries ?? [])])],
         services: [...c.services],
         categories: [...c.categories],
         result: c.result,
