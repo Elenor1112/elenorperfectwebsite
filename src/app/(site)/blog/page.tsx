@@ -1,8 +1,11 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { PageShell } from '@/components/PageShell';
+import { BlogAnimation } from '@/components/BlogAnimation';
+import { JsonLd } from '@/components/JsonLd';
 import { Reveal } from '@/components/Reveal';
+import { breadcrumbSchema } from '@/lib/schema';
 import { getPosts } from '@/lib/data/posts';
+import { getSiteSettings } from '@/lib/data/settings';
 import { hubPageMetadata } from '@/lib/data/seo';
 
 // Time fallback so scheduled posts appear within 5 minutes with no cron.
@@ -21,19 +24,35 @@ const fmt = (iso: string) =>
   new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
 export default async function BlogPage() {
-  const posts = await getPosts();
+  const [posts, site] = await Promise.all([getPosts(), getSiteSettings()]);
   const [lead, ...rest] = posts;
 
   return (
     <>
-      <PageShell
-        eyebrow="The studio journal"
-        title="Insights, not filler."
-        lede="Practical marketing, branding, and digital strategy from the Elenor team — social media, SEO, AEO, branding, and the trends actually shaping how Egyptian brands grow."
-        crumbs={[{ name: 'Blog', path: '/blog' }]}
+      <JsonLd
+        data={breadcrumbSchema(
+          [
+            { name: 'Home', path: '/' },
+            { name: 'Blog', path: '/blog' },
+          ],
+          site.url,
+        )}
       />
 
-      <section className="py-20">
+      {/* Animated hero replaces PageShell here; the breadcrumb nav
+          PageShell used to render is kept below so the page keeps its
+          crawlable trail. */}
+      <nav aria-label="Breadcrumb" className="container-x pt-32 md:pt-36">
+        <div className="flex flex-wrap items-center gap-2 text-xs text-white/40">
+          <Link href="/" className="hover:text-white">Home</Link>
+          <span aria-hidden>/</span>
+          <Link href="/blog" className="hover:text-white">Blog</Link>
+        </div>
+      </nav>
+
+      <BlogAnimation />
+
+      <section className="border-b border-white/10 py-20">
         <div className="container-x">
           {lead ? (
             <Reveal>

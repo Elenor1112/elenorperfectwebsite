@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
+  Bot,
   Briefcase,
   FileText,
   HelpCircle,
@@ -39,6 +40,7 @@ const CONTENT_LINKS = [
   { href: '/admin/testimonials', label: 'Testimonials', icon: MessageSquareQuote },
   { href: '/admin/media', label: 'Media', icon: ImageIcon },
   { href: '/admin/messages', label: 'Inbox', icon: Inbox },
+  { href: '/admin/ai', label: 'Elenor AI', icon: Bot },
 ];
 
 const ADMIN_LINKS = [

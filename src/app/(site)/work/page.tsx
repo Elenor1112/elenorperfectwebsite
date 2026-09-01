@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { PageShell } from '@/components/PageShell';
+import { WorkHero } from '@/components/WorkHero';
 import { WorkGallery } from '@/components/WorkGallery';
 import { CTA } from '@/components/sections/CTA';
 import { getCaseStudies, getRosterClients } from '@/lib/data/work';
@@ -25,12 +25,7 @@ export default async function WorkPage() {
 
   return (
     <>
-      <PageShell
-        eyebrow="Portfolio"
-        title="Our Work."
-        lede="A selection of campaigns, brand builds, and digital products we’ve delivered across pharma, FMCG, real estate, automotive, hospitality, and professional services — filterable by industry."
-        crumbs={[{ name: 'Work', path: '/work' }]}
-      />
+      <WorkHero />
       <section className="py-20">
         <div className="container-x">
           <WorkGallery

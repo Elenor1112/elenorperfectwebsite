@@ -14,8 +14,15 @@ export function Hero({ data }: { data: SectionData<'hero'> }) {
       {/* Background (black base + baby-blue glow + scrim) is site-wide —
           see SiteBackground in the (site) layout. */}
 
-      {/* Real, indexable DOM content sits on top of the background */}
-      <div className="relative z-10 flex min-h-screen items-center">
+      {/* Real, indexable DOM content sits on top of the background.
+          z-20 (above the showcase strip's z-10) because the strip is pulled up
+          by a negative margin and comes later in the DOM — at an equal z-index
+          it would paint over the CTA row. The bottom padding reserves the space
+          that negative pull consumes, so on short viewports the buttons and
+          scroll hint stay clear of the strip instead of being crowded by it. */}
+      {/* pt clears the FIXED site nav (~168px tall), which is out of flow and
+          would otherwise sit on top of the eyebrow. */}
+      <div className="relative z-20 flex min-h-screen items-center pb-24 pt-44 md:pb-32">
         <div className="container-x">
           {/* [data-hero-rest] elements stay hidden while the headline reveal
               plays and fade up once it settles (see HeroHeadline). */}
@@ -24,20 +31,30 @@ export function Hero({ data }: { data: SectionData<'hero'> }) {
             {data.eyebrow}
           </p>
 
-          <HeroHeadline line1={data.headlineLine1} line2={data.headlineLine2} />
+          {/* Headline animation and the copy block sit side by side from `md`
+              up, sharing one flex row so there is no vertical gap between
+              them — the copy's top edge lines up with the headline's rather
+              than trailing beneath it. Below `md` the lockup is
+              width-governed and narrow, so the row collapses back to a
+              stacked column. */}
+          <div className="mt-6 flex flex-col gap-8 md:mt-4 md:flex-row md:items-center md:gap-10">
+            <HeroHeadline line1={data.headlineLine1} line2={data.headlineLine2} />
 
-          <p className="mt-7 max-w-xl text-lg leading-relaxed text-white/70" data-hero-rest>
-            {data.sub}
-          </p>
+            <div className="md:flex-1">
+              <p className="text-lg leading-relaxed text-white/70" lang="en" data-hero-rest>
+                {data.sub}
+              </p>
 
-          <div className="mt-9 flex flex-wrap items-center gap-4" data-hero-rest>
-            <Link href={data.primaryCta.href} className="btn-primary pointer-events-auto">
-              {data.primaryCta.label}
-              <span aria-hidden>→</span>
-            </Link>
-            <Link href={data.secondaryCta.href} className="btn-ghost pointer-events-auto">
-              {data.secondaryCta.label}
-            </Link>
+              <div className="mt-9 flex flex-wrap items-center gap-4" data-hero-rest>
+                <Link href={data.primaryCta.href} className="btn-primary pointer-events-auto">
+                  {data.primaryCta.label}
+                  <span aria-hidden>→</span>
+                </Link>
+                <Link href={data.secondaryCta.href} className="btn-ghost pointer-events-auto">
+                  {data.secondaryCta.label}
+                </Link>
+              </div>
+            </div>
           </div>
 
           <p
@@ -53,7 +70,7 @@ export function Hero({ data }: { data: SectionData<'hero'> }) {
       {/* Showcase strip — an auto-scrolling band of work photos bridging the
           two hero statements. */}
       {animation.showcaseStripEnabled ? (
-        <div className="relative z-10 -mt-24 md:-mt-40">
+        <div className="relative z-10 -mt-12 md:-mt-24">
           <ImageAutoSlider images={showcaseImages} />
         </div>
       ) : null}

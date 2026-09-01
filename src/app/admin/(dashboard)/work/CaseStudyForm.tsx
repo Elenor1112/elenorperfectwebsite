@@ -13,7 +13,11 @@ import type { RichTextDoc } from '@/db/schema';
 import { Button, Card, Field, Input, PageHeader, Select, Switch, Textarea } from '@/components/admin/ui';
 import { StringListEditor } from '@/components/admin/StringListEditor';
 import { MediaPicker, type PickedMedia } from '@/components/admin/media/MediaPicker';
-import { GalleryEditor, GalleryVideoEditor } from '@/components/admin/GalleryEditor';
+import {
+  GalleryEditor,
+  GalleryVideoEditor,
+  type GalleryItemValue,
+} from '@/components/admin/GalleryEditor';
 import { SeoFieldset, type SeoValue, emptySeo } from '@/components/admin/SeoFieldset';
 import { useAutosave, SaveStatusLabel } from '@/components/admin/useAutosave';
 
@@ -28,7 +32,8 @@ const slugify = (s: string) =>
 export type GalleryValue = {
   label: string;
   serviceSlug: string | null;
-  images: PickedMedia[];
+  /** Images and 3D models, in display order. */
+  items: GalleryItemValue[];
   videoUrls: string[];
 };
 
@@ -94,7 +99,22 @@ function toInput(v: CaseStudyFormValue): CaseStudyInput {
       .map((g) => ({
         label: g.label,
         serviceSlug: g.serviceSlug ?? slugify(g.label),
-        mediaIds: g.images.map((i) => i.id),
+        // Drop half-configured rows (a 3D item whose file hasn't uploaded yet,
+        // an image item with no media) so autosave doesn't fail validation
+        // while the editor is still filling one in.
+        items: g.items
+          .filter((i) => (i.type === 'model' ? i.model : i.image))
+          .map((i) => ({
+            type: i.type,
+            mediaId: i.image?.id ?? null,
+            modelMediaId: i.model?.id ?? null,
+            environmentPreset: i.environmentPreset,
+            autoRotate: i.autoRotate,
+            enableHoverRotation: i.enableHoverRotation,
+            enableMouseParallax: i.enableMouseParallax,
+            modelXOffset: i.modelXOffset,
+            modelYOffset: i.modelYOffset,
+          })),
         videoUrls: g.videoUrls,
       })),
     seo: {
@@ -158,7 +178,7 @@ export function CaseStudyForm({
     const services = has ? value.services.filter((s) => s !== name) : [...value.services, name];
     let galleries = value.galleries;
     if (!has && !galleries.some((g) => g.label === name)) {
-      galleries = [...galleries, { label: name, serviceSlug: slugify(name), images: [], videoUrls: [] }];
+      galleries = [...galleries, { label: name, serviceSlug: slugify(name), items: [], videoUrls: [] }];
     }
     setValue((cur) => ({ ...cur, services, categories: services, galleries }));
     if (!isNew) notify();
@@ -338,11 +358,11 @@ export function CaseStudyForm({
                   </Button>
                 </div>
                 <GalleryEditor
-                  value={g.images}
-                  onChange={(images) =>
+                  value={g.items}
+                  onChange={(items) =>
                     set(
                       'galleries',
-                      value.galleries.map((x, j) => (j === i ? { ...x, images } : x)),
+                      value.galleries.map((x, j) => (j === i ? { ...x, items } : x)),
                     )
                   }
                 />
@@ -366,7 +386,7 @@ export function CaseStudyForm({
               variant="secondary"
               size="sm"
               onClick={() =>
-                set('galleries', [...value.galleries, { label: 'New gallery', serviceSlug: null, images: [], videoUrls: [] }])
+                set('galleries', [...value.galleries, { label: 'New gallery', serviceSlug: null, items: [], videoUrls: [] }])
               }
             >
               Add gallery

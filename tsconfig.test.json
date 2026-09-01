@@ -1,0 +1,9 @@
+{
+  // Test-only overrides. Next compiles the app with `jsx: "preserve"`, but the
+  // plain Node test runner needs JSX transformed — `react-jsx` uses the
+  // automatic runtime so component files need no React import of their own.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "jsx": "react-jsx"
+  }
+}

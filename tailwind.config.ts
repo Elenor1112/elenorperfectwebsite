@@ -21,6 +21,7 @@ const config: Config = {
       fontFamily: {
         display: ['var(--font-display)', 'system-ui', 'sans-serif'],
         sans: ['var(--font-sans)', 'system-ui', 'sans-serif'],
+        glory: ['var(--font-glory)', 'system-ui', 'sans-serif'],
       },
       maxWidth: {
         content: '76rem',

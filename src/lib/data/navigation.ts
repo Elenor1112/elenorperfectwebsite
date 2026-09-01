@@ -1,5 +1,5 @@
 import 'server-only';
-import { unstable_cache } from 'next/cache';
+import { cachedQuery } from './cache';
 import { asc, eq } from 'drizzle-orm';
 import { db } from '@/db';
 import { menuItems, menus } from '@/db/schema';
@@ -30,5 +30,5 @@ async function fetchMenu(slug: string): Promise<PublicMenuItem[]> {
 }
 
 export function getMenu(slug: string): Promise<PublicMenuItem[]> {
-  return unstable_cache(() => fetchMenu(slug), ['menu', slug], { tags: ['menus'] })();
+  return cachedQuery(() => fetchMenu(slug), ['menu', slug], { tags: ['menus'] });
 }

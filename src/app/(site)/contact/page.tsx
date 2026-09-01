@@ -82,13 +82,20 @@ export default async function ContactPage() {
               </div>
             </div>
 
-            <div className="overflow-hidden rounded-3xl glass">
+            <div className="relative overflow-hidden rounded-3xl glass">
               <iframe
                 title={`${site.name} location`}
                 src={mapSrc}
                 className="h-64 w-full border-0"
                 loading="lazy"
                 referrerPolicy="no-referrer-when-downgrade"
+              />
+              <a
+                href="https://maps.app.goo.gl/TDaUUAgHdS1AMpnk8"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Open in Google Maps"
+                className="absolute inset-0"
               />
             </div>
           </div>

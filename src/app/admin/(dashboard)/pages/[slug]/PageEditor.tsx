@@ -17,6 +17,7 @@ import { SECTION_FIELDS, type FieldDef } from './sectionFields';
 import { SortableList } from '@/components/admin/SortableList';
 import { StringListEditor } from '@/components/admin/StringListEditor';
 import { SeoFieldset, type SeoValue } from '@/components/admin/SeoFieldset';
+import { MediaPicker, type PickedMedia } from '@/components/admin/media/MediaPicker';
 import { Button, Card, Field, Input, PageHeader, Switch, Textarea, cn } from '@/components/admin/ui';
 
 type SectionRow = {
@@ -254,6 +255,20 @@ function SectionField({
           />
         </Field>
       );
+    case 'image': {
+      // Narrowed rather than cast: section data is unknown-shaped jsonb, and a
+      // row that predates this field (or carries a bare media id from an older
+      // save) would otherwise reach MediaPicker as a string.
+      const picked =
+        raw && typeof raw === 'object' && typeof (raw as PickedMedia).url === 'string'
+          ? (raw as PickedMedia)
+          : null;
+      return (
+        <Field label={field.label} hint={field.hint}>
+          <MediaPicker value={picked} onChange={(m) => update(field.name, m)} />
+        </Field>
+      );
+    }
     case 'toggle':
       return (
         <div className="flex items-center justify-between rounded-xl border border-white/10 px-4 py-3">

@@ -1,0 +1,30 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node -e ' *)",
+      "Bash(node \"C:/Users/Fahd/AppData/Local/Temp/claude/d--4th-try-to-be-humans/ee93ee94-9cc8-4ec3-b4fb-cf97f603a066/scratchpad/fixline.js\")",
+      "Bash(cp /tmp/chunktest.mts ./chunktest.mts)",
+      "Bash(rm -f ./chunktest.mts)",
+      "Bash(TSX_TSCONFIG_PATH= npx esbuild --version)",
+      "Bash(npm test *)",
+      "Bash(echo \"TSC_EXIT=$?\")",
+      "Bash(python3 -c ' *)",
+      "Bash(rm -f emb.json)",
+      "Bash(echo \"TSC=$?\")",
+      "Bash(node \"C:/Users/Fahd/AppData/Local/Temp/claude/d--4th-try-to-be-humans/ee93ee94-9cc8-4ec3-b4fb-cf97f603a066/scratchpad/swap-cache.js\")",
+      "PowerShell(npx tsc --noEmit -p tsconfig.json)",
+      "PowerShell($f = \"C:\\\\Users\\\\Fahd\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\d--4th-try-to-be-humans\\\\0ca9efc4-62e7-4475-88a2-2f2b449359f3\\\\scratchpad\\\\check_showcase.py\"; \\(Get-Content $f -Raw\\).Replace\\('localhost:3000','localhost:3001'\\) | Set-Content $f -Encoding utf8; python $f)",
+      "PowerShell(python \"C:\\\\Users\\\\Fahd\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\d--4th-try-to-be-humans\\\\0ca9efc4-62e7-4475-88a2-2f2b449359f3\\\\scratchpad\\\\check_showcase.py\")",
+      "PowerShell(python \"C:\\\\Users\\\\Fahd\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\d--4th-try-to-be-humans\\\\0ca9efc4-62e7-4475-88a2-2f2b449359f3\\\\scratchpad\\\\overflow_source.py\")",
+      "PowerShell(python \"C:\\\\Users\\\\Fahd\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\d--4th-try-to-be-humans\\\\0ca9efc4-62e7-4475-88a2-2f2b449359f3\\\\scratchpad\\\\check_sparse.py\")",
+      "PowerShell(python \"C:\\\\Users\\\\Fahd\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\d--4th-try-to-be-humans\\\\0ca9efc4-62e7-4475-88a2-2f2b449359f3\\\\scratchpad\\\\shot_sparse.py\")",
+      "PowerShell(npm run build 2>&1)",
+      "PowerShell(python \"C:\\\\Users\\\\Fahd\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\d--4th-try-to-be-humans\\\\0ca9efc4-62e7-4475-88a2-2f2b449359f3\\\\scratchpad\\\\check_hover_pause.py\")",
+      "PowerShell(python \"C:\\\\Users\\\\Fahd\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\d--4th-try-to-be-humans\\\\0ca9efc4-62e7-4475-88a2-2f2b449359f3\\\\scratchpad\\\\diag_hover.py\")",
+      "PowerShell(python \"C:\\\\Users\\\\Fahd\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\d--4th-try-to-be-humans\\\\0ca9efc4-62e7-4475-88a2-2f2b449359f3\\\\scratchpad\\\\check_lift.py\")",
+      "Bash(curl -sL -o \"public/test-model.glb\" \"https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/main/2.0/BoxTextured/glTF-Binary/BoxTextured.glb\")",
+      "Bash(xxd)",
+      "Bash(curl -s http://localhost:3001/work/coca-cola)"
+    ]
+  }
+}

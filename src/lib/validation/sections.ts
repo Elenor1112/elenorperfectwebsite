@@ -97,29 +97,54 @@ export const ctaSectionSchema = z.object({
 export const aboutHeroSchema = z.object({
   eyebrow: z.string().default('Why Elenor'),
   title: z.string().default('We don’t just build brands. We build them from scratch.'),
+  // Rendered visibly under the hero stage (see about/page.tsx), styled to match
+  // the Services hub's lede. The `\n` is a deliberate line break the client can
+  // keep or drop from the admin textarea — the <p> carries whitespace-pre-line,
+  // so removing it just reflows the copy as one paragraph.
   lede: z
     .string()
     .default(
-      'Elenor Marketing Agency is led by CEO Emad Samir, a former marketing director at Meamar with a master’s in management and marketing from ESLSCA France. We build brands end-to-end — strategy, identity, content, and execution — for businesses of every size across Egypt and the region.',
+      'Brands are remembered, connected with, and chosen.\nAt Elenor, we combine strategy, creativity, innovation, and quality execution to turn ideas into impactful brand experiences.',
     ),
 });
 
 export const ceoQuoteSchema = z.object({
-  eyebrow: z.string().default('The CEO’s word'),
+  eyebrow: z.string().default('CEO’s Word'),
   quote: z
     .string()
     .default(
-      '“Thinking back to the first time I did online marketing, I find it incredible how things have changed — and the pace of that change is only increasing. We built our strategy around the latest tools and techniques without losing sight of what actually moves a client’s business forward. I’m confident Elenor will keep exceeding its own bar in a genuinely competitive industry.”',
+      'Earning my Master of Business Administration (MBA) in Management & Marketing from ESLSCA France inspired me to establish Elenor Marketing Agency in 2021 with a clear vision: to build an agency that combines strategic thinking with creative excellence. Since day one, our mission has been simple, to help businesses build stronger brands, connect with their audiences, and achieve sustainable growth. At Elenor, we continuously embrace the latest marketing technologies and industry best practices, integrating AI-powered solutions alongside SEO, GEO, and AEO to ensure our clients remain visible in both traditional search engines and the rapidly evolving AI landscape. As marketing continues to evolve, so do we. Our commitment remains unchanged: delivering measurable results, building lasting partnerships, and creating work that makes a meaningful impact.',
     ),
-  cite: z.string().default('— Eng. Emad Samir, CEO & Founder'),
+  cite: z.string().default('Eng. Emad Samir, CEO & Founder'),
+  // Stored inline rather than as a media id: section rows come back as raw
+  // jsonb with no join (see fetchPage), so an id would need a second lookup on
+  // a cached path that runs for every About render. Nullable and fully
+  // defaulted because rows seeded before this field existed carry no `portrait`
+  // key — and parseSectionData answers *any* parse failure by falling back to
+  // schema.parse({}), which would silently replace the client's edited quote.
+  // For the same reason `url` is a bare string: media.storage can be 'local',
+  // whose paths are relative and would fail z.string().url().
+  portrait: z
+    .object({
+      id: z.string().default(''),
+      url: z.string().default(''),
+      alt: z.string().default(''),
+    })
+    .nullable()
+    .default(null)
+    // Absorbs anything unexpected in this one field instead of letting it fail.
+    // Without it a malformed value (a bare string left by an older save, say)
+    // fails the whole object, and parseSectionData's fallback then discards
+    // every other field with it — losing the quote to salvage the portrait.
+    .catch(null),
 });
 
 export const storySchema = z.object({
-  heading: z.string().default('What “tailored” actually means.'),
+  heading: z.string().default('What Tailored Actually Means'),
   paragraphs: z
     .array(z.string())
     .default([
-      'We are not builders, but we build from scratch. Elenor’s team develops marketing plans based on each client’s real size, industry, and stage — grounded in actual market research, not a templated playbook. That means strategy, identity, content, and media handled by one accountable team, so the brand experience stays consistent from the first concept to the final campaign.',
+      'We are not builders, but we build from scratch. Elenor’s team develops marketing plans based on each client’s real size, industry, and stage, grounded in actual market research, not a templated playbook. That means strategy, identity, content, and media handled by one accountable team, so the brand experience stays consistent from the first concept to the final campaign.',
       'The result shows up in named work: pharmaceutical and healthcare brands like Zoetis and Marcyrl, FMCG and industrial brands like Coca-Cola and Saint-Gobain, and real-estate and hospitality clients like Emaar and Al-Walid Horse Resort.',
     ]),
 });
@@ -139,6 +164,33 @@ export const missionVisionSchema = z.object({
   mission: z.string().default(''),
   visionTitle: z.string().default('Our vision'),
   vision: z.string().default(''),
+});
+
+// Icon grid on the About page: Vision / Mission / Values / Goals, each with a
+// hover-revealed blurb. Distinct from `missionVisionSchema` and `valuesSchema`
+// above (older, differently-shaped sections still available for other pages).
+export const brandPhilosophySchema = z.object({
+  heading: z.string().default('Brand Philosophy'),
+  vision: z
+    .string()
+    .default(
+      'To become a leading 360° marketing partner in the region, known for turning bold ideas into impactful brand experiences that drive growth and create lasting value.',
+    ),
+  mission: z
+    .string()
+    .default(
+      'At Elenor, we bring strategy, creativity, technology, and production together to build meaningful brand experiences. We partner with businesses to transform their ideas into innovative, high-quality marketing solutions that create real impact and measurable growth.',
+    ),
+  values: z
+    .string()
+    .default(
+      'Integrity, credibility, innovation, quality, teamwork, creativity, flexibility, satisfaction, success, management, and professionalism.',
+    ),
+  goals: z
+    .string()
+    .default(
+      'Establish Elenor as a leading 360° marketing partner. Turn innovation into high-quality creative and production results.',
+    ),
 });
 
 export const timelineSchema = z.object({
@@ -182,6 +234,7 @@ export const sectionSchemas = {
   story: storySchema,
   values: valuesSchema,
   mission_vision: missionVisionSchema,
+  brand_philosophy: brandPhilosophySchema,
   timeline: timelineSchema,
   team: teamSchema,
   about_faq: aboutFaqSchema,
@@ -203,6 +256,7 @@ export const SECTION_LABELS: Record<SectionType, string> = {
   story: 'Company story',
   values: 'Values',
   mission_vision: 'Mission & vision',
+  brand_philosophy: 'Brand philosophy',
   timeline: 'Timeline',
   team: 'Team',
   about_faq: 'About FAQ',

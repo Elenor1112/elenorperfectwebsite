@@ -1,5 +1,5 @@
 import 'server-only';
-import { unstable_cache } from 'next/cache';
+import { cachedQuery } from './cache';
 import { asc, eq } from 'drizzle-orm';
 import { db } from '@/db';
 import { pages, pageSections } from '@/db/schema';
@@ -57,9 +57,9 @@ async function fetchPage(slug: string, includeDisabled: boolean): Promise<Public
 
 export async function getPage(slug: string): Promise<PublicPage | null> {
   if (isDraftMode()) return fetchPage(slug, false);
-  return unstable_cache(() => fetchPage(slug, false), ['page', slug], {
+  return cachedQuery(() => fetchPage(slug, false), ['page', slug], {
     tags: ['pages', `page:${slug}`],
-  })();
+  });
 }
 
 /** Typed accessor for one section of a page (defaults applied when absent). */

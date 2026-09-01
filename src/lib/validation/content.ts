@@ -68,10 +68,34 @@ export const youtubeUrlSchema = z
   .url()
   .regex(/(?:youtube\.com|youtu\.be)\//, 'Must be a YouTube URL');
 
+// One gallery item: a still image, or a 3D model with its viewer settings.
+// `mediaId` is the image itself for image rows, and the optional poster for
+// model rows — which is why it is nullable.
+export const galleryItemInputSchema = z
+  .object({
+    type: z.enum(['image', 'model']).default('image'),
+    mediaId: z.string().uuid().nullable().default(null),
+    modelMediaId: z.string().uuid().nullable().default(null),
+    environmentPreset: z
+      .enum(['forest', 'studio', 'city', 'sunset', 'warehouse'])
+      .default('forest'),
+    autoRotate: z.boolean().default(false),
+    enableHoverRotation: z.boolean().default(true),
+    enableMouseParallax: z.boolean().default(true),
+    // Framing nudges in world units — bounded so a typo can't push the model
+    // out of frame entirely.
+    modelXOffset: z.number().min(-10).max(10).default(0),
+    modelYOffset: z.number().min(-10).max(10).default(0),
+  })
+  // Mirrors the DB check constraint: a row must have something to render.
+  .refine((i) => (i.type === 'model' ? Boolean(i.modelMediaId) : Boolean(i.mediaId)), {
+    message: 'Gallery items need an image; 3D items need a model file.',
+  });
+
 export const galleryInputSchema = z.object({
   label: z.string().min(1, 'Gallery label required').max(120),
   serviceSlug: z.string().max(120).nullable().default(null),
-  mediaIds: z.array(z.string().uuid()).default([]),
+  items: z.array(galleryItemInputSchema).default([]),
   videoUrls: z.array(youtubeUrlSchema).max(20).default([]),
 });
 

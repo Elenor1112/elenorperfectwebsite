@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import Image, { type StaticImageData } from 'next/image';
 import './BrandOrbit.css';
 
-import elenorLogo from '@/assets/elenor final logo-01.png';
+import elenorLogo from '@/assets/elenor logo For Web-02.png';
 import abcLogo from '@/assets/Orbs Colors/ABC-Logo.png';
 import alNesrAlJawhariLogo from '@/assets/Orbs Colors/image_2025-01-22_115953.png';
 import cocaColaLogo from '@/assets/Orbs Colors/image_2025-01-22_120110.png';

@@ -10,6 +10,7 @@ import { Footer } from '@/components/Footer';
 import { SiteBackground } from '@/components/SiteBackground';
 import { AnalyticsScripts, ThemeStyle } from '@/components/SiteTheme';
 import { DraftBanner } from '@/components/DraftBanner';
+import { ChatWidgetLoader } from '@/components/chat/ChatWidgetLoader';
 
 export async function generateMetadata(): Promise<Metadata> {
   const site = await getSiteSettings();
@@ -72,6 +73,7 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
       </main>
       <Footer />
       <DraftBanner />
+      <ChatWidgetLoader />
     </>
   );
 }

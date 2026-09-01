@@ -1,9 +1,15 @@
 import 'server-only';
-import { unstable_cache } from 'next/cache';
+import { cachedQuery } from './cache';
 import { asc, eq } from 'drizzle-orm';
 import { db } from '@/db';
 import { caseStudies, caseStudyGalleries, rosterClients } from '@/db/schema';
-import type { MetricItem, RichTextDoc, TestimonialData } from '@/db/schema';
+import type {
+  GalleryItemType,
+  MetricItem,
+  ModelEnvironment,
+  RichTextDoc,
+  TestimonialData,
+} from '@/db/schema';
 import { isDraftMode } from './draft';
 
 export type PublicCaseStudy = {
@@ -32,11 +38,50 @@ export type PublicCaseStudy = {
   updatedAt: string;
 };
 
+/** A still image in a gallery — the original, and still the common, case. */
+export type PublicGalleryImage = {
+  kind: 'image';
+  url: string;
+  alt: string;
+  caption: string;
+};
+
+/** An interactive 3D model, with the viewer settings chosen in the CMS. */
+export type PublicGalleryModel = {
+  kind: 'model';
+  url: string;
+  alt: string;
+  caption: string;
+  posterUrl: string | null;
+  environmentPreset: ModelEnvironment;
+  autoRotate: boolean;
+  enableHoverRotation: boolean;
+  enableMouseParallax: boolean;
+  modelXOffset: number;
+  modelYOffset: number;
+};
+
+export type PublicGalleryItem = PublicGalleryImage | PublicGalleryModel;
+
+/**
+ * The 3D model shown beside the case-study title, if this study has one.
+ * Sourced from the first model item across the study's galleries, so an
+ * editor promotes a model to the hero simply by adding it.
+ */
+export function heroModelOf(galleries: PublicGallery[]): PublicGalleryModel | null {
+  for (const g of galleries) {
+    const model = g.items.find((i): i is PublicGalleryModel => i.kind === 'model');
+    if (model) return model;
+  }
+  return null;
+}
+
 export type PublicGallery = {
   id: string;
   label: string;
   serviceSlug: string | null;
-  images: { url: string; alt: string; caption: string }[];
+  /** Images and models interleaved, in editor-defined order. */
+  items: PublicGalleryItem[];
   videoUrls: string[];
 };
 
@@ -51,7 +96,19 @@ type CaseStudyRow = typeof caseStudies.$inferSelect & {
     serviceSlug: string | null;
     sortOrder: number;
     videoUrls: string[];
-    images: { sortOrder: number; media: { url: string; alt: string; caption: string } | null }[];
+    images: {
+      sortOrder: number;
+      type: GalleryItemType;
+      environmentPreset: ModelEnvironment;
+      autoRotate: boolean;
+      enableHoverRotation: boolean;
+      enableMouseParallax: boolean;
+      modelXOffset: number;
+      modelYOffset: number;
+      // Image, or poster for model rows.
+      media: { url: string; alt: string; caption: string } | null;
+      modelMedia: { url: string; alt: string; caption: string } | null;
+    }[];
   }[];
 };
 
@@ -93,12 +150,35 @@ function toGalleries(row: CaseStudyRow): PublicGallery[] {
       label: g.label,
       serviceSlug: g.serviceSlug,
       videoUrls: g.videoUrls ?? [],
-      images: g.images
+      items: g.images
         .slice()
         .sort((a, b) => a.sortOrder - b.sortOrder)
-        .flatMap((i) =>
-          i.media ? [{ url: i.media.url, alt: i.media.alt, caption: i.media.caption }] : [],
-        ),
+        .flatMap((i): PublicGalleryItem[] => {
+          // A model row whose file was deleted falls back to its poster rather
+          // than vanishing; one with neither is dropped.
+          if (i.type === 'model' && i.modelMedia) {
+            return [
+              {
+                kind: 'model',
+                url: i.modelMedia.url,
+                // Prefer the poster's alt (authored per placement), else the
+                // model file's own alt text.
+                alt: i.media?.alt || i.modelMedia.alt,
+                caption: i.media?.caption || i.modelMedia.caption,
+                posterUrl: i.media?.url ?? null,
+                environmentPreset: i.environmentPreset,
+                autoRotate: i.autoRotate,
+                enableHoverRotation: i.enableHoverRotation,
+                enableMouseParallax: i.enableMouseParallax,
+                modelXOffset: i.modelXOffset,
+                modelYOffset: i.modelYOffset,
+              },
+            ];
+          }
+          return i.media
+            ? [{ kind: 'image', url: i.media.url, alt: i.media.alt, caption: i.media.caption }]
+            : [];
+        }),
     }));
 }
 
@@ -110,7 +190,14 @@ const LIST_RELATIONS = {
 const DETAIL_RELATIONS = {
   ...LIST_RELATIONS,
   galleries: {
-    with: { images: { with: { media: { columns: { url: true, alt: true, caption: true } } } } },
+    with: {
+      images: {
+        with: {
+          media: { columns: { url: true, alt: true, caption: true } },
+          modelMedia: { columns: { url: true, alt: true, caption: true } },
+        },
+      },
+    },
   },
 } as const;
 
@@ -140,16 +227,16 @@ async function fetchCaseStudy(
 
 export async function getCaseStudies(): Promise<PublicCaseStudy[]> {
   if (isDraftMode()) return fetchCaseStudies(true);
-  return unstable_cache(() => fetchCaseStudies(false), ['case-studies:list'], {
+  return cachedQuery(() => fetchCaseStudies(false), ['case-studies:list'], {
     tags: ['case-studies'],
-  })();
+  });
 }
 
 export async function getCaseStudy(slug: string) {
   if (isDraftMode()) return fetchCaseStudy(slug, true);
-  return unstable_cache(() => fetchCaseStudy(slug, false), ['case-study', slug], {
+  return cachedQuery(() => fetchCaseStudy(slug, false), ['case-study', slug], {
     tags: ['case-studies', `case-study:${slug}`],
-  })();
+  });
 }
 
 export async function getRosterClients(): Promise<PublicRosterClient[]> {
@@ -160,7 +247,7 @@ export async function getRosterClients(): Promise<PublicRosterClient[]> {
     });
     return rows.map((r) => ({ name: r.name, industries: r.industries }));
   };
-  return unstable_cache(fetch, ['roster:list'], { tags: ['roster'] })();
+  return cachedQuery(fetch, ['roster:list'], { tags: ['roster'] });
 }
 
 export async function getCaseStudySlugs(): Promise<string[]> {
@@ -195,7 +282,11 @@ async function fetchServiceShowcaseImages(serviceSlug: string): Promise<ServiceS
 
   type GalleryRow = {
     caseStudy: { client: string; status: string } | null;
-    images: { sortOrder: number; media: { url: string; alt: string } | null }[];
+    images: {
+      sortOrder: number;
+      type: GalleryItemType;
+      media: { url: string; alt: string } | null;
+    }[];
   };
 
   const perClient = (galleries as unknown as GalleryRow[])
@@ -204,6 +295,8 @@ async function fetchServiceShowcaseImages(serviceSlug: string): Promise<ServiceS
       g.images
         .slice()
         .sort((a, b) => a.sortOrder - b.sortOrder)
+        // Still images only — this feeds a plain <img> crossfade slider, so a
+        // model row contributes its poster (its `media`) or nothing at all.
         .flatMap((i) =>
           i.media ? [{ url: i.media.url, alt: i.media.alt, client: g.caseStudy!.client }] : [],
         ),
@@ -226,11 +319,11 @@ async function fetchServiceShowcaseImages(serviceSlug: string): Promise<ServiceS
 }
 
 export function getServiceShowcaseImages(serviceSlug: string): Promise<ServiceShowcaseImage[]> {
-  return unstable_cache(
+  return cachedQuery(
     () => fetchServiceShowcaseImages(serviceSlug),
     ['service-showcase', serviceSlug],
     { tags: ['case-studies'] },
-  )();
+  );
 }
 
 /* --------------------- per-service showcase video (hero) -------------------- */
@@ -265,9 +358,9 @@ async function fetchServiceShowcaseVideo(serviceSlug: string): Promise<ServiceSh
 }
 
 export function getServiceShowcaseVideo(serviceSlug: string): Promise<ServiceShowcaseVideo | null> {
-  return unstable_cache(
+  return cachedQuery(
     () => fetchServiceShowcaseVideo(serviceSlug),
     ['service-showcase-video', serviceSlug],
     { tags: ['case-studies'] },
-  )();
+  );
 }

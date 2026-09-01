@@ -13,7 +13,7 @@ import type { RichTextDoc } from '@/db/schema';
 import { Button, Card, Field, Input, PageHeader, Select, Textarea } from '@/components/admin/ui';
 import { StringListEditor } from '@/components/admin/StringListEditor';
 import { MediaPicker, type PickedMedia } from '@/components/admin/media/MediaPicker';
-import { GalleryEditor } from '@/components/admin/GalleryEditor';
+import { ImageGalleryEditor } from '@/components/admin/GalleryEditor';
 import { SeoFieldset, type SeoValue, emptySeo } from '@/components/admin/SeoFieldset';
 import { useAutosave, SaveStatusLabel } from '@/components/admin/useAutosave';
 
@@ -243,7 +243,7 @@ export function ServiceForm({ initial }: { initial: ServiceFormValue }) {
 
         <Card>
           <h2 className="mb-4 font-display font-semibold">Gallery</h2>
-          <GalleryEditor value={value.gallery} onChange={(v) => set('gallery', v)} />
+          <ImageGalleryEditor value={value.gallery} onChange={(v) => set('gallery', v)} />
         </Card>
 
         <Card>

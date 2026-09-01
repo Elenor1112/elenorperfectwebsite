@@ -2,12 +2,15 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { YouTubeEmbed } from './YouTubeEmbed';
+import { ModelMedia } from './three/ModelMedia';
+import type { PublicGalleryItem } from '@/lib/data/work';
 
 // One service tab on a case study page: a label and the media shown under it.
 export type ServiceGallery = {
   id: string;
   label: string;
-  images: string[];
+  /** Images and 3D models, interleaved in editor order. */
+  items: PublicGalleryItem[];
   videoUrls?: string[];
 };
 
@@ -135,15 +138,49 @@ export function CaseStudyGallery({ caseStudy }: CaseStudyGalleryProps) {
           </div>
         ) : null}
         <ul className="grid grid-cols-2 gap-4 md:grid-cols-3 md:gap-6 lg:grid-cols-4">
-          {active.images.map((src, i) => {
-            const alt = `${clientName} — ${active.label}, image ${i + 1} of ${active.images.length}`;
+          {active.items.map((item, i) => {
+            // Editor-authored alt wins; the positional fallback keeps older
+            // galleries (which have no alt text) describing themselves.
+            const fallbackAlt = `${clientName} — ${active.label}, ${
+              item.kind === 'model' ? '3D model' : 'image'
+            } ${i + 1} of ${active.items.length}`;
+            const alt = item.alt || fallbackAlt;
+
+            if (item.kind === 'model') {
+              return (
+                // Models span the full row — a 300–500px viewer in a quarter
+                // -width tile is unusable, and spanning avoids a ragged grid.
+                <li key={`model-${item.url}-${i}`} className="col-span-2 md:col-span-3 lg:col-span-4">
+                  <ModelMedia
+                    url={item.url}
+                    alt={alt}
+                    posterUrl={item.posterUrl}
+                    environmentPreset={item.environmentPreset}
+                    autoRotate={item.autoRotate}
+                    enableHoverRotation={item.enableHoverRotation}
+                    enableMouseParallax={item.enableMouseParallax}
+                    modelXOffset={item.modelXOffset}
+                    modelYOffset={item.modelYOffset}
+                    info={{
+                      name: item.alt || null,
+                      client: clientName,
+                      project: active.label,
+                    }}
+                  />
+                  {item.caption ? (
+                    <p className="mt-2 text-xs text-white/45">{item.caption}</p>
+                  ) : null}
+                </li>
+              );
+            }
+
             return (
-              <li key={src}>
+              <li key={`image-${item.url}-${i}`}>
                 <button
                   type="button"
                   onClick={(e) => {
                     triggerRef.current = e.currentTarget;
-                    setLightbox({ src, alt });
+                    setLightbox({ src: item.url, alt });
                   }}
                   aria-label={`View full-size: ${alt}`}
                   className="block w-full overflow-hidden rounded-lg transition duration-300 hover:scale-[1.02] hover:shadow-[0_16px_40px_-16px_rgba(0,0,0,0.8)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-cyan"
@@ -152,7 +189,7 @@ export function CaseStudyGallery({ caseStudy }: CaseStudyGalleryProps) {
                       /public, so the next/image optimizer adds nothing here. */}
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
-                    src={src}
+                    src={item.url}
                     alt={alt}
                     loading="lazy"
                     className="aspect-[4/3] w-full rounded-lg bg-white/[0.04] object-cover"

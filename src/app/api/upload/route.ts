@@ -1,6 +1,28 @@
 import { NextResponse } from 'next/server';
 import { handleUpload, type HandleUploadBody } from '@vercel/blob/client';
 import { getCurrentUser, can } from '@/server/auth/rbac';
+import { isModelFilename } from '@/db/schema/media';
+
+const IMAGE_CONTENT_TYPES = [
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'image/avif',
+  'image/gif',
+  'image/svg+xml',
+];
+
+// .glb/.gltf have real IANA types; .fbx/.obj do not, so browsers send an empty
+// type or octet-stream. The extension check below is the actual gate.
+const MODEL_CONTENT_TYPES = [
+  'model/gltf-binary',
+  'model/gltf+json',
+  'application/octet-stream',
+  'text/plain', // some browsers report .obj (plain text) this way
+];
+
+const IMAGE_MAX_BYTES = 10 * 1024 * 1024; // files are webp-compressed client-side first
+const MODEL_MAX_BYTES = 100 * 1024 * 1024;
 
 // Token handler for direct client → Vercel Blob uploads. The browser asks
 // this route for a scoped upload token, then streams the file straight to
@@ -20,18 +42,18 @@ export async function POST(request: Request): Promise<NextResponse> {
     const jsonResponse = await handleUpload({
       body,
       request,
-      onBeforeGenerateToken: async () => ({
-        allowedContentTypes: [
-          'image/jpeg',
-          'image/png',
-          'image/webp',
-          'image/avif',
-          'image/gif',
-          'image/svg+xml',
-        ],
-        maximumSizeInBytes: 10 * 1024 * 1024, // 10MB cap (files are webp-compressed client-side first)
-        addRandomSuffix: true,
-      }),
+      // The size cap is decided per file: 3D models legitimately run to tens of
+      // MB, but images must not quietly gain a 100MB allowance. `pathname` is
+      // the filename the client asked to upload, so the extension gates which
+      // limit and which content types apply.
+      onBeforeGenerateToken: async (pathname) => {
+        const isModel = isModelFilename(pathname);
+        return {
+          allowedContentTypes: isModel ? MODEL_CONTENT_TYPES : IMAGE_CONTENT_TYPES,
+          maximumSizeInBytes: isModel ? MODEL_MAX_BYTES : IMAGE_MAX_BYTES,
+          addRandomSuffix: true,
+        };
+      },
       // Registration happens via the registerUpload server action instead.
       onUploadCompleted: async () => {},
     });

@@ -21,6 +21,20 @@
   --showcase-card-radius: 16px;
   --showcase-back-fade: 0.3;
   --showcase-ring-tilt: 20deg;
+
+  /* ── Hero headline faces ───────────────────────────────────────────────────
+     The hero lockup (HeroHeadline) sets its script words ("Where" / "Meets") in
+     EARLY BIRD and its technical words ("INNOVATION" / "QUALITY.") in GILROY
+     LIGHT. Both faces ship in src/assets/fonts/ and are loaded by
+     next/font/local in app/layout.tsx; these variables are the indirection the
+     component reads, kept so the faces can be swapped in one place.
+
+     The trailing fallbacks are the project's own faces, covering the window
+     before the local files resolve. HeroHeadline re-measures and re-fits every
+     word onto its measured ink box once document.fonts settles, so a face swap
+     here needs no change to the animation. */
+  --font-hero-script: var(--font-hero-script-face), var(--font-glory);
+  --font-hero-techno: var(--font-hero-techno-face), var(--font-display);
 }
 
 * {
@@ -99,6 +113,33 @@ body:has(#elenor-intro) #site-nav {
   transform: translateY(0) !important;
 }
 
+/* Hero headline — post-write glow pulse on the cyan words ("Innovation" /
+   "Quality."). HeroHeadline sets data-written="true" on its root when the pen
+   finishes, which is what arms this; before that the words are mid-draw and a
+   pulse would fight the write-on.
+
+   The pulse rides `opacity` on the whole cyan <g> rather than a filter or
+   drop-shadow animation: those relayout the SVG filter region every frame,
+   which is expensive enough to show up as jank next to the hero's other
+   animations. Opacity is compositor-only. */
+@keyframes hh-ink-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.82;
+  }
+}
+[data-written='true'] .hh-cyan {
+  animation: hh-ink-pulse 3.4s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-written='true'] .hh-cyan {
+    animation: none;
+  }
+}
+
 /* Gradient text */
 .text-gradient {
   background: linear-gradient(110deg, #fff 0%, #bfe9f0 40%, #68cad6 100%);
@@ -135,6 +176,23 @@ body:has(#elenor-intro) #site-nav {
   100% {
     transform: translateY(10px) scaleY(1.02);
     opacity: 1;
+  }
+}
+
+/* ServicesShowcase marquee: hovering a card halts only the belt that card rides
+   on — the other column keeps drifting. `:has()` puts the paused state on the
+   track itself, so the pause is driven by the card's own :hover region rather
+   than a wrapper, and the gaps between cards don't trigger it. Pointer-only, so
+   touch scrolling never sticks a belt in a paused state. */
+@media (hover: hover) and (pointer: fine) {
+  /* border-radius clips painting but NOT hit-testing, so the square corners
+     outside the 24px radius would still count as :hover. Clipping to the same
+     rounded rect makes the hover region match the card's visible shape. */
+  .showcase-card {
+    clip-path: inset(0 round 1.5rem);
+  }
+  .showcase-belt:has(.showcase-card:hover) {
+    animation-play-state: paused;
   }
 }
 
@@ -227,3 +285,301 @@ body:has(#elenor-intro) #site-nav {
 .rich-text hr {
   @apply border-white/10;
 }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   About hero — magnifying glass sweep.
+   Geometry is measured from the reference clip; see AboutHero.tsx for the
+   numbers and how they were read. The stage is a fixed 1920×500 aspect box and
+   every position is a percentage of it, so the whole composition scales as one.
+   ───────────────────────────────────────────────────────────────────────────── */
+.about-hero {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+}
+
+.about-hero__stage {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1920 / 500;
+  /* The stage is full-bleed (outside .container-x) so the lens can sweep
+     edge-to-edge, but the wordmark itself needs to line up with the "Our
+     Services." heading on the Services hub — same left inset as
+     .container-x, which is `w-full max-w-content mx-auto px-6 md:px-10`: its
+     content edge is max(0, (100vw - 1216px) / 2) + padding. The wordmark's
+     own left inset is WORD.x / STAGE_W = 22.3354% of the stage (see WORD in
+     AboutHero.tsx), so shifting the whole composition by
+     (container edge − that %) lands the "A" of "About" under the "H" of
+     "Home" — the same left edge "Our Services." sits at. Everything else
+     (props, lens sweep) rides along in the same stage coordinate space, so
+     it stays internally consistent. */
+  --about-container-x: calc(max(0px, (100vw - 76rem) / 2) + 1.5rem);
+  transform: translateX(calc(var(--about-container-x) - 22.3354%));
+}
+
+@media (min-width: 768px) {
+  .about-hero__stage {
+    --about-container-x: calc(max(0px, (100vw - 76rem) / 2) + 2.5rem);
+  }
+}
+
+.about-hero__word {
+  position: absolute;
+  height: auto;
+  /* Full image box, transparent padding included — see WORD in AboutHero.tsx.
+     2484 wide, not the source art's 2294: a word space was cut into "Aboutus". */
+  aspect-ratio: 2484 / 666;
+  user-select: none;
+}
+
+/* The wordmark is now real font-display (Sora) text rather than delivered
+   art — see AboutHero.tsx. It fills the same WORD box the old PNG occupied
+   (percent-of-stage left/top/width, set inline), so the lens-sweep and
+   glass-mask math elsewhere on this page, all measured against that box,
+   still lines up. Font-size is a percentage of the stage width via cqw so it
+   scales with the box exactly like the old image's own width did. */
+.about-hero__wordtext {
+  display: block;
+  white-space: nowrap;
+  /* Typography matched to the "Our Services." h1 on the services hub, so the two
+     hero headings read as the same heading. That h1 is `font-display text-4xl
+     font-bold leading-[1.02] tracking-tight md:text-6xl` and inherits the body
+     colour, which computes to: Sora 700, letter-spacing -0.025em, colour --fg,
+     and line-height 1 — text-6xl's own line-height lands after leading-[1.02] in
+     Tailwind's cascade, so 1.02 never applies there and must not apply here. The
+     weight is set on the elements themselves (font-bold in AboutHero.tsx) since
+     both copies carry it. Font-size steps 36px -> 60px at the md breakpoint,
+     exactly as text-4xl/md:text-6xl does on that h1, so the two hero headings
+     are the same size at every viewport width rather than only above ~867px
+     (where the previous fluid clamp finally reached 60px).
+
+     Because the size no longer scales with vw, the word's width in *stage*
+     coordinates now changes with the viewport — the stage is a fraction of vw,
+     the text is not. The lens therefore cannot use a hard-coded rest position;
+     AboutHero measures the rendered "us" and drives --lens-rest-x from it. */
+  color: var(--fg);
+  line-height: 1;
+  letter-spacing: -0.025em;
+  /* 25% larger than the services h1 it was matched to (2.25rem -> 2.8125rem,
+     3.75rem -> 4.6875rem). The lens sweep and park read the rendered ink at
+     runtime, so they follow the larger word without further adjustment. */
+  font-size: 2.8125rem;
+}
+
+@media (min-width: 768px) {
+  .about-hero__wordtext {
+    font-size: 4.6875rem;
+  }
+}
+
+/* The glass copy is only ever seen through the lens, so it carries the site's
+   cyan instead of the base copy's white — same --color-brand-glow the loupe
+   ring is tinted to, so the lens and what it magnifies are one colour. */
+.about-hero__plane .about-hero__wordtext {
+  color: rgb(var(--color-brand-glow));
+}
+
+/* One span per glyph on the glass copy, so AboutHero's rAF loop can scale up
+   whichever letter the lens centre currently sits over. transform-origin
+   stays centred so a glyph grows in place rather than pushing its neighbours
+   — line layout is unaffected since the growth is a paint-time transform,
+   not a width change. */
+.about-hero__wordtext--magnified .about-hero__glyph {
+  display: inline-block;
+  transform-origin: 50% 50%;
+  will-change: transform;
+}
+
+.about-hero__prop {
+  position: absolute;
+  height: auto;
+  aspect-ratio: var(--ar);
+  user-select: none;
+  /* Props fly in from off-stage right and settle with a small overshoot, which
+     is what the frames show: each one crosses its slot by a few px, then comes
+     back. Held at the start position until its delay elapses. */
+  transform: translate3d(var(--from), 0, 0);
+  animation-name: about-prop-in;
+  animation-fill-mode: both;
+  animation-timing-function: cubic-bezier(0.2, 0.9, 0.3, 1.25);
+}
+
+@keyframes about-prop-in {
+  from {
+    transform: translate3d(var(--from), 0, 0);
+  }
+  to {
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+/* Position and size both come from JS, per frame, as plain numbers in stage
+   units — the lens holds one baseline while it works the wordmark, then rises
+   and shrinks as it leaves to join the props. --lens-y is unitless stage px
+   (the plane and the wordmark's mask hole do arithmetic with it), so it is
+   converted to a percentage of the 500-tall stage here. */
+.about-hero__lens {
+  position: absolute;
+  top: calc(var(--lens-y) / 500 * 100%);
+  left: 0;
+  width: var(--lens-w);
+  /* Centre the loupe's ring on (--lens-x, --lens-y). The ring is not centred in
+     its own artwork — it sits --ring-cx across and --ring-cy down, with the
+     handle hanging to the lower right — so both axes shift by those amounts. */
+  transform: translate3d(
+    calc(var(--lens-x) * (100% / var(--loupe-w)) - var(--ring-cx)),
+    calc(var(--ring-cy) * -1),
+    0
+  );
+  will-change: transform;
+}
+
+.about-hero__loupe {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: auto;
+  user-select: none;
+  /* The source PNG is a white outline on transparent, so the ring is tinted the
+     site's cyan (--color-brand-glow, #68cad6) via an SVG colour-matrix filter
+     that remaps white to that colour — the matrix constants live in
+     AboutHero.tsx, since CSS cannot feed a custom property into feColorMatrix.
+     `mask-image` cannot do this, since a masked <img> still
+     paints its own bitmap underneath; only a real recolour filter can. The
+     matrix's last column scales existing alpha through unchanged, so the
+     transparent background and the anti-aliased stroke edges are untouched.
+     Combined with the drop-shadow that lifts the ring off the page background
+     the way the clip's does (measured just outside the ring: 41/54/62
+     against a 33/47/55 background — a slight lift, not a dark halo). */
+  filter: url(#about-loupe-tint) drop-shadow(0 3px 8px rgb(0 0 0 / 0.16));
+  /* The tinted ring is the brightest thing on the stage — a solid cyan outline
+     against the dark ground, where the props on the right are muted isometric
+     art. Dropping it to 0.62 lets it sit in the same register as those props
+     instead of reading as a separate, hotter layer; the shadow above is eased
+     back to match, since a lighter ring casting a heavy shadow reads wrong. */
+  opacity: 0.62;
+}
+
+/* The glass: a circle pinned on the ring centre. Inside it lives a full-size
+   copy of the stage, shifted back by the lens position — so the bold wordmark
+   it carries stays locked to page coordinates while the glass slides over it. */
+.about-hero__glass {
+  position: absolute;
+  top: var(--ring-cy);
+  left: var(--ring-cx);
+  width: var(--glass-of-loupe);
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  overflow: hidden;
+  /* The glass reads 65/98/107 in the clip against a 33/47/55 background. Most of
+     that lift already comes from the thickened wordmark filling the disc, so the
+     wash on top is light: measured with no fill the glass sits at 63/93/101, and
+     this lands it on 65/98/107. */
+  background: rgb(84 146 159 / 0.1);
+}
+
+/* A stage-sized plane inside the circular window. A plane --stage-of-glass wide
+   (the stage width over the glass diameter) is exactly one stage across.
+   Shifting it back by the lens position lands its origin on the stage origin,
+   which re-pins everything it holds to page coordinates. */
+.about-hero__plane {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: var(--stage-of-glass);
+  aspect-ratio: 1920 / 500;
+  /* The glass window is centred on (--lens-x, --lens-y) in stage space, and
+     this plane is one stage wide/tall. Placing the plane's origin at the
+     glass's top-left means offsetting by the glass centre minus half the glass:
+     the glass's top-left is (x-r, y-r), so the plane shifts by (r-x, r-y).
+     All three terms are driven per frame, so this stays correct while the lens
+     moves on both axes and its radius shrinks through the join. */
+  transform: translate(
+    calc((var(--glass-r) - var(--lens-x)) / 1920 * 100%),
+    calc((var(--glass-r) - var(--lens-y)) / 500 * 100%)
+  );
+}
+
+/* The base (thin) copy is cut away wherever the glass sits, so the bold copy
+   inside the glass is the only thing drawn there.
+
+   Without this the two copies overlap: the bold cut is only ~30% heavier, so
+   the thin one's edges peek out all around the heavy stroke and each letter
+   reads as a doubled outline. Masking the thin copy means exactly one weight
+   is visible at any pixel, and the swap happens at the glass rim.
+
+   The mask is in the element's own box, but --lens-x/--lens-y are in stage px,
+   so the circle centre is the glass centre expressed relative to the wordmark:
+   (lens-x - WORD.x) / WORD.w across, and (lens-y - WORD.y) / WORD.h down.
+   The WORD box is inlined here because CSS cannot read the TS module:
+   WORD = {x:428.84, y:139.6, w:596.16, h:159.84}. The radius is the glass
+   radius (--glass-r, in stage px) over the same width.
+
+   Every term the hole depends on is a per-frame custom property, so the cut
+   tracks the lens as it rises and shrinks on its way to the props — a hole
+   pinned to the old fixed baseline would separate from the glass the moment
+   the join phase started, while the disc is still over the tail of "us". */
+.about-hero__word--thin {
+  --hole-x: calc((var(--lens-x) - 428.84) / 596.16 * 100%);
+  --hole-y: calc((var(--lens-y) - 139.6) / 159.84 * 100%);
+  /* A percentage radius is not valid for `circle`, and the element's box is not
+     square, so the hole is sized in ex-units of the element instead: the mask
+     uses an ellipse whose two radii are the same --glass-r stage px expressed
+     against this box's own width and height. That keeps it a true circle on screen. */
+  -webkit-mask-image: radial-gradient(
+    ellipse calc(var(--glass-r) / 596.16 * 100%)
+      calc(var(--glass-r) / 159.84 * 100%) at var(--hole-x) var(--hole-y),
+    transparent 99%,
+    #000 100%
+  );
+  mask-image: radial-gradient(
+    ellipse calc(var(--glass-r) / 596.16 * 100%)
+      calc(var(--glass-r) / 159.84 * 100%) at var(--hole-x) var(--hole-y),
+    transparent 99%,
+    #000 100%
+  );
+}
+
+/* The bold copy inside the glass is a real asset (icon-01-bold.png) rather
+   than a CSS effect, so it needs no rule of its own — it reuses .about-hero__word.
+
+   The previous approach stacked nine offset copies of the base alpha mask. That
+   was wrong at this scale: the mask offsets are in CSS px but the artwork is
+   drawn ~4x down from source, so a 5px offset grew the stroke by ~21 source px
+   — it nearly doubled the weight, closed the counters in o/b/u and rounded the
+   terminals, which stopped reading as the same typeface. Dilating the alpha at
+   full source resolution instead (r=6px, strokes 40->52) is a clean weight step
+   with the letterforms intact. See scripts/build-about-wordmark.mjs. */
+
+/* Reduced motion: hold the finished composition. The props sit in their slots,
+   and the lens parks mid-sweep — the component pins --lens-x to REDUCED_X, which
+   the lens transform and the glass's inner plane both read, so the two stay in
+   agreement. Same picture, without the movement. */
+.about-hero[data-reduced] .about-hero__prop {
+  animation: none;
+  transform: none;
+}
+
+/* About page — kinetic parallax headings. Transparent glyphs with the brand
+   gradient painted as the fill (background-clip: text), scrubbed
+   horizontally by AboutContent.tsx against vertical scroll. Sized as a
+   fraction of the viewport width so it stays enormous — and stays background
+   texture rather than competing with the real heading — at every breakpoint. */
+.about-parallax-text {
+  display: inline-block;
+  font-size: clamp(2.625rem, 9vw, 8.25rem);
+  letter-spacing: -0.02em;
+  background: linear-gradient(
+    100deg,
+    rgb(var(--color-brand)) 0%,
+    rgb(var(--color-brand-glow)) 45%,
+    rgb(var(--color-brand-cyan)) 100%
+  );
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  opacity: 0.9;
+}
+

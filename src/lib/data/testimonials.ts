@@ -1,5 +1,5 @@
 import 'server-only';
-import { unstable_cache } from 'next/cache';
+import { cachedQuery } from './cache';
 import { asc, eq } from 'drizzle-orm';
 import { db } from '@/db';
 import { testimonials } from '@/db/schema';
@@ -25,7 +25,7 @@ async function fetchTestimonials(): Promise<PublicTestimonial[]> {
 }
 
 export function getTestimonials(): Promise<PublicTestimonial[]> {
-  return unstable_cache(fetchTestimonials, ['testimonials:list'], {
+  return cachedQuery(fetchTestimonials, ['testimonials:list'], {
     tags: ['testimonials'],
-  })();
+  });
 }

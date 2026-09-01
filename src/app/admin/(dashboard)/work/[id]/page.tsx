@@ -23,7 +23,18 @@ export default async function EditCaseStudyPage({ params }: { params: { id: stri
             label: string;
             serviceSlug: string | null;
             videoUrls: string[];
-            images: { media: Media }[];
+            images: {
+              id: string;
+              type: 'image' | 'model';
+              environmentPreset: 'forest' | 'studio' | 'city' | 'sunset' | 'warehouse';
+              autoRotate: boolean;
+              enableHoverRotation: boolean;
+              enableMouseParallax: boolean;
+              modelXOffset: number;
+              modelYOffset: number;
+              media: Media | null;
+              modelMedia: Media | null;
+            }[];
           }[];
         })
       | null
@@ -56,9 +67,23 @@ export default async function EditCaseStudyPage({ params }: { params: { id: stri
       label: g.label,
       serviceSlug: g.serviceSlug,
       videoUrls: g.videoUrls ?? [],
-      images: g.images
-        .filter((i) => i.media)
-        .map((i) => ({ id: i.media!.id, url: i.media!.url, alt: i.media!.alt })),
+      // Keep rows that have something to show: an image, or a model file.
+      items: g.images
+        .filter((i) => i.media || i.modelMedia)
+        .map((i) => ({
+          key: i.id,
+          type: i.type,
+          image: i.media ? { id: i.media.id, url: i.media.url, alt: i.media.alt } : null,
+          model: i.modelMedia
+            ? { id: i.modelMedia.id, url: i.modelMedia.url, alt: i.modelMedia.alt }
+            : null,
+          environmentPreset: i.environmentPreset,
+          autoRotate: i.autoRotate,
+          enableHoverRotation: i.enableHoverRotation,
+          enableMouseParallax: i.enableMouseParallax,
+          modelXOffset: i.modelXOffset,
+          modelYOffset: i.modelYOffset,
+        })),
     })),
     seo: {
       ...emptySeo,

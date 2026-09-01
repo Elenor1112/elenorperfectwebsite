@@ -1,15 +1,15 @@
 import { relations } from 'drizzle-orm';
 import {
   boolean,
+  doublePrecision,
   index,
   integer,
   jsonb,
   pgTable,
-  primaryKey,
   text,
   uuid,
 } from 'drizzle-orm/pg-core';
-import { contentStatusEnum } from './enums';
+import { contentStatusEnum, galleryItemTypeEnum, modelEnvironmentEnum } from './enums';
 import {
   timestamps,
   type MetricItem,
@@ -66,19 +66,39 @@ export const caseStudyGalleries = pgTable('case_study_galleries', {
   videoUrls: text('video_urls').array().default([]).notNull(),
 });
 
+// One item in a gallery — either a still image (the original behaviour) or an
+// interactive 3D model. The viewer settings live here rather than on `media`
+// because they describe *this placement* of the asset: the same model can sit
+// in two galleries with different presets, framing and rotation.
 export const caseStudyGalleryImages = pgTable(
   'case_study_gallery_images',
   {
+    // Surrogate key. Replaced the old composite (gallery_id, media_id) PK so a
+    // gallery can hold the same asset twice and model rows can carry settings.
+    id: uuid('id').primaryKey().defaultRandom(),
     galleryId: uuid('gallery_id')
       .notNull()
       .references(() => caseStudyGalleries.id, { onDelete: 'cascade' }),
-    mediaId: uuid('media_id')
-      .notNull()
-      .references(() => media.id, { onDelete: 'cascade' }),
+    // The image, or — for model rows — the optional poster shown until the
+    // model finishes loading. Nullable since a model needs no poster.
+    mediaId: uuid('media_id').references(() => media.id, { onDelete: 'cascade' }),
+    type: galleryItemTypeEnum('type').default('image').notNull(),
+    // Model rows only: the .glb/.gltf/.fbx/.obj asset in the media library.
+    modelMediaId: uuid('model_media_id').references(() => media.id, { onDelete: 'set null' }),
+    environmentPreset: modelEnvironmentEnum('environment_preset').default('forest').notNull(),
+    autoRotate: boolean('auto_rotate').default(false).notNull(),
+    enableHoverRotation: boolean('enable_hover_rotation').default(true).notNull(),
+    enableMouseParallax: boolean('enable_mouse_parallax').default(true).notNull(),
+    // Framing nudges passed straight to ModelViewer, in world units.
+    modelXOffset: doublePrecision('model_x_offset').default(0).notNull(),
+    modelYOffset: doublePrecision('model_y_offset').default(0).notNull(),
     sortOrder: integer('sort_order').default(0).notNull(),
   },
   (t) => ({
-    pk: primaryKey({ columns: [t.galleryId, t.mediaId] }),
+    galleryOrderIdx: index('case_study_gallery_images_gallery_order_idx').on(
+      t.galleryId,
+      t.sortOrder,
+    ),
   }),
 );
 
@@ -110,5 +130,15 @@ export const caseStudyGalleryImagesRelations = relations(caseStudyGalleryImages,
     fields: [caseStudyGalleryImages.galleryId],
     references: [caseStudyGalleries.id],
   }),
-  media: one(media, { fields: [caseStudyGalleryImages.mediaId], references: [media.id] }),
+  // Named relations: two FKs point at `media`, so Drizzle needs them disambiguated.
+  media: one(media, {
+    fields: [caseStudyGalleryImages.mediaId],
+    references: [media.id],
+    relationName: 'gallery_item_image',
+  }),
+  modelMedia: one(media, {
+    fields: [caseStudyGalleryImages.modelMediaId],
+    references: [media.id],
+    relationName: 'gallery_item_model',
+  }),
 }));

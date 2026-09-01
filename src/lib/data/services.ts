@@ -1,5 +1,5 @@
 import 'server-only';
-import { unstable_cache } from 'next/cache';
+import { cachedQuery } from './cache';
 import { asc, eq } from 'drizzle-orm';
 import { db } from '@/db';
 import { services } from '@/db/schema';
@@ -103,14 +103,14 @@ async function fetchService(slug: string, includeDrafts: boolean): Promise<Publi
 
 export async function getServices(): Promise<PublicService[]> {
   if (isDraftMode()) return fetchServices(true);
-  return unstable_cache(() => fetchServices(false), ['services:list'], { tags: ['services'] })();
+  return cachedQuery(() => fetchServices(false), ['services:list'], { tags: ['services'] });
 }
 
 export async function getService(slug: string): Promise<PublicService | null> {
   if (isDraftMode()) return fetchService(slug, true);
-  return unstable_cache(() => fetchService(slug, false), ['service', slug], {
+  return cachedQuery(() => fetchService(slug, false), ['service', slug], {
     tags: ['services', `service:${slug}`],
-  })();
+  });
 }
 
 /** For generateStaticParams — returns [] when the DB is unreachable at build

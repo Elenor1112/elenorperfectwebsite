@@ -1,5 +1,5 @@
 import 'server-only';
-import { unstable_cache } from 'next/cache';
+import { cachedQuery } from './cache';
 import { asc, eq } from 'drizzle-orm';
 import { db } from '@/db';
 import { faqs } from '@/db/schema';
@@ -30,7 +30,7 @@ async function fetchFaqCategories(): Promise<PublicFaqCategory[]> {
 }
 
 export function getFaqCategories(): Promise<PublicFaqCategory[]> {
-  return unstable_cache(fetchFaqCategories, ['faqs:categories'], { tags: ['faqs'] })();
+  return cachedQuery(fetchFaqCategories, ['faqs:categories'], { tags: ['faqs'] });
 }
 
 export async function getFaqsByCategory(slug: string): Promise<PublicFaq[]> {

@@ -1,5 +1,5 @@
 import 'server-only';
-import { unstable_cache } from 'next/cache';
+import { cachedQuery } from './cache';
 import { and, desc, eq, lte, or, type SQL } from 'drizzle-orm';
 import { db } from '@/db';
 import { posts } from '@/db/schema';
@@ -105,18 +105,18 @@ async function fetchPost(slug: string, includeDrafts: boolean): Promise<PublicPo
 
 export async function getPosts(): Promise<PublicPost[]> {
   if (isDraftMode()) return fetchPosts(true);
-  return unstable_cache(() => fetchPosts(false), ['posts:list'], {
+  return cachedQuery(() => fetchPosts(false), ['posts:list'], {
     tags: ['posts'],
     revalidate: BLOG_REVALIDATE_SECONDS,
-  })();
+  });
 }
 
 export async function getPost(slug: string): Promise<PublicPost | null> {
   if (isDraftMode()) return fetchPost(slug, true);
-  return unstable_cache(() => fetchPost(slug, false), ['post', slug], {
+  return cachedQuery(() => fetchPost(slug, false), ['post', slug], {
     tags: ['posts', `post:${slug}`],
     revalidate: BLOG_REVALIDATE_SECONDS,
-  })();
+  });
 }
 
 export async function getPostSlugs(): Promise<string[]> {

@@ -1,5 +1,5 @@
 import 'server-only';
-import { unstable_cache } from 'next/cache';
+import { cachedQuery } from './cache';
 import { eq } from 'drizzle-orm';
 import { db } from '@/db';
 import { settings } from '@/db/schema';
@@ -23,9 +23,9 @@ async function fetchSetting<K extends SettingsKey>(key: K): Promise<SettingsValu
 }
 
 export function getSetting<K extends SettingsKey>(key: K): Promise<SettingsValue<K>> {
-  return unstable_cache(() => fetchSetting(key), [`setting:${key}`], {
+  return cachedQuery(() => fetchSetting(key), [`setting:${key}`], {
     tags: [`setting:${key}`],
-  })();
+  });
 }
 
 export const getSiteSettings = () => getSetting('site');

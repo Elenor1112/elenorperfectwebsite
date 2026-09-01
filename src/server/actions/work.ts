@@ -73,9 +73,22 @@ export async function saveCaseStudy(input: CaseStudyInput): Promise<ActionResult
         videoUrls: gallery.videoUrls,
       })
       .returning({ id: caseStudyGalleries.id });
-    if (gallery.mediaIds.length > 0) {
+    if (gallery.items.length > 0) {
       await db.insert(caseStudyGalleryImages).values(
-        gallery.mediaIds.map((mediaId, i) => ({ galleryId: row.id, mediaId, sortOrder: i })),
+        gallery.items.map((item, i) => ({
+          galleryId: row.id,
+          // For model rows this is the optional poster.
+          mediaId: item.mediaId,
+          type: item.type,
+          modelMediaId: item.type === 'model' ? item.modelMediaId : null,
+          environmentPreset: item.environmentPreset,
+          autoRotate: item.autoRotate,
+          enableHoverRotation: item.enableHoverRotation,
+          enableMouseParallax: item.enableMouseParallax,
+          modelXOffset: item.modelXOffset,
+          modelYOffset: item.modelYOffset,
+          sortOrder: i,
+        })),
       );
     }
   }
@@ -131,7 +144,10 @@ export async function getCaseStudyForEdit(id: string) {
       galleries: {
         orderBy: [asc(caseStudyGalleries.sortOrder)],
         with: {
-          images: { orderBy: [asc(caseStudyGalleryImages.sortOrder)], with: { media: true } },
+          images: {
+            orderBy: [asc(caseStudyGalleryImages.sortOrder)],
+            with: { media: true, modelMedia: true },
+          },
         },
       },
     } as never,

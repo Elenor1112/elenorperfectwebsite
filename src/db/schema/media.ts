@@ -63,3 +63,22 @@ export const mediaFoldersRelations = relations(mediaFolders, ({ one, many }) => 
 export const mediaRelations = relations(media, ({ one }) => ({
   folder: one(mediaFolders, { fields: [media.folderId], references: [mediaFolders.id] }),
 }));
+
+// 3D model formats accepted by the media library, alongside images. Kept here
+// so the upload route, the client uploader and the admin UI agree on one list.
+export const MODEL_EXTENSIONS = ['.glb', '.gltf', '.fbx', '.obj'] as const;
+
+export const MODEL_CONTENT_TYPES = [
+  'model/gltf-binary',
+  'model/gltf+json',
+  // .fbx/.obj have no registered IANA type; browsers usually send an empty
+  // string or octet-stream for them, so both are accepted and the extension
+  // is what actually gates the upload.
+  'application/octet-stream',
+] as const;
+
+/** True when a filename looks like a 3D model the viewer can load. */
+export function isModelFilename(filename: string): boolean {
+  const lower = filename.toLowerCase();
+  return MODEL_EXTENSIONS.some((ext) => lower.endsWith(ext));
+}

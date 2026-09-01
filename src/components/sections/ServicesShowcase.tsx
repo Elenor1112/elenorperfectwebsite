@@ -22,16 +22,16 @@ export type ShowcaseCard = {
 //  - Left 30%: sticky vertical list of services. Hover previews a filter;
 //    click locks it so it persists after mouseleave (click again to unlock,
 //    click another service to move the lock).
-//  - Right 70%: 2-column grid of case-study cards that fade + rise in on scroll.
-//    Hovering/locking a service reorders the matching cards to the FRONT and
-//    animates the non-matching ones out (only matches remain) — the original
-//    reorder behaviour, back again.
+//  - Right 70%: two counter-drifting marquee columns of case-study cards —
+//    the left column travels up, the right travels down, on a slow (~60s) loop.
+//    Hovering/locking a service filters the columns down to the matching cards;
+//    the belts keep moving throughout, they just carry fewer cards.
 //
-// Perf: this stays smooth with 30+ cards because Framer only tracks the visible
-// (matching) set, we use `layout="position"` (translate-only, no size FLIP),
-// and animate transform + opacity only — no animated blur. At rest (`active ===
-// null`) every card renders in its original order, so the section is fully
-// crawlable.
+// Perf: the loop is pure CSS (reusing the scroll-reel-up/down keyframes from
+// globals.css — content doubled, track translated -50%), so scrolling costs no
+// JS per frame and no Framer layout FLIP. Only transform + opacity animate.
+// Card contents render in DOM order inside each column, so the section stays
+// crawlable; the duplicated half is aria-hidden.
 
 // A gradient "cover" per card, keyed by its first category, so cards read as
 // distinct image tiles without needing real assets yet.
@@ -127,13 +127,25 @@ export function ServicesShowcase({
   const toggle = (name: string) =>
     setLocked((cur) => (cur === name ? null : name));
 
-  // When a service is active, show only its matching cards (non-matching ones
-  // animate out) so the matches read as reordered to the front. No active
-  // filter → every card, in its original order.
+  // When a service is active, show only its matching cards. No active filter →
+  // every card, in its original order.
   const visible = useMemo(
     () => (active ? cards.filter((c) => c.categories.includes(active)) : cards),
     [active, cards],
   );
+
+  // Split into the two counter-drifting columns. Alternating (even/odd) keeps
+  // both columns near-equal in length whatever the filter leaves behind.
+  // A single match would otherwise leave the right column empty and the row
+  // lopsided, so both belts carry it (staggered, so they're never in step).
+  const mirrored = visible.length === 1;
+  const columns = useMemo(() => {
+    if (visible.length === 1) return [visible, visible];
+    return [
+      visible.filter((_, i) => i % 2 === 0),
+      visible.filter((_, i) => i % 2 === 1),
+    ];
+  }, [visible]);
 
   return (
     <section
@@ -217,99 +229,198 @@ export function ServicesShowcase({
             </div>
           </div>
 
-          {/* RIGHT — 2-column grid of case-study cards. CSS Grid (not masonry
-              columns) so cards flow left-to-right, top-to-bottom: 1 2 / 3 4.
-              Falls back to a single column on mobile.
-
-              Animations are back, but done cheaply — transform + opacity only
-              (GPU-composited), driven by CSS transitions with a per-card
-              transition-delay for the top-to-bottom stagger. No card reorder,
-              no Framer `layout` FLIP, and no animated blur; those were what made
-              hovering across the service list janky with 30+ cards. Cards keep a
-              fixed DOM order:
-                • mount: fade + rise in when the grid scrolls into view
-                • filter: matching cards lift forward, non-matching settle back. */}
+          {/* RIGHT — two counter-drifting marquee columns. Column A travels up,
+              column B travels down, both on the same slow loop so the pair reads
+              as one mechanism. Masked top and bottom so cards dissolve at the
+              edges instead of popping. Single column on mobile (drifting up). */}
           <div ref={gridRef} className="lg:w-[70%]">
-            <motion.div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-              <AnimatePresence mode="popLayout" initial={false}>
-                {visible.map((card, i) => {
-                  const primary = card.categories[0];
-                  const cover = COVERS[primary] ?? COVER_FALLBACK;
-                  const coverImage = card.coverImageUrl;
-                  // Stagger reads top-to-bottom; capped so later cards don't lag.
-                  const delay = reduce ? 0 : Math.min(i, 8) * 0.04;
-                  return (
-                    <motion.article
-                      key={card.slug}
-                      // `layout="position"` slides a card to its new grid slot
-                      // (translate only — no expensive size FLIP) when the
-                      // visible set reorders.
-                      layout={reduce ? false : 'position'}
-                      initial={{ opacity: 0, y: 24, scale: 0.98 }}
-                      animate={inView ? { opacity: 1, y: 0, scale: 1 } : { opacity: 0, y: 24, scale: 0.98 }}
-                      exit={{ opacity: 0, scale: 0.9 }}
-                      transition={{
-                        duration: 0.45,
-                        delay,
-                        ease: [0.16, 1, 0.3, 1],
-                        layout: { duration: 0.45, ease: [0.16, 1, 0.3, 1] },
-                      }}
-                      className="h-full will-change-transform"
-                    >
-                      <Link
-                        href={`/work/${card.slug}`}
-                        className="group block overflow-hidden rounded-3xl glass transition-transform duration-500 hover:-translate-y-1"
-                      >
-                        {/* Cover with a diagonal cutout corner (top-right) */}
-                        <div
-                          className={`relative aspect-[4/3] bg-gradient-to-br ${cover}`}
-                          style={{
-                            clipPath:
-                              'polygon(0 0, calc(100% - 2.5rem) 0, 100% 2.5rem, 100% 100%, 0 100%)',
-                          }}
-                        >
-                          {coverImage && (
-                            <img
-                              src={coverImage}
-                              alt={`${card.client} — ${primary}`}
-                              loading="lazy"
-                              decoding="async"
-                              className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
-                            />
-                          )}
-                          <div className="absolute inset-0 bg-ink/25 mix-blend-multiply" />
-                          <span className="absolute bottom-4 left-5 font-display text-lg font-semibold text-white/90 drop-shadow">
-                            {card.client}
-                          </span>
-                        </div>
-
-                        <div className="p-5">
-                          <h3 className="font-display text-base font-semibold leading-snug text-white/90">
-                            {card.result}
-                          </h3>
-                          <div className="mt-4 flex flex-wrap gap-2">
-                            {card.categories.slice(0, 2).map((c) => (
-                              <span
-                                key={c}
-                                className={`rounded-full border px-3 py-1 text-xs font-medium ${
-                                  PILL[c] ?? PILL_FALLBACK
-                                }`}
-                              >
-                                {c}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                      </Link>
-                    </motion.article>
-                  );
-                })}
-              </AnimatePresence>
-            </motion.div>
+            <div
+              className={[
+                'grid grid-cols-1 gap-5 sm:grid-cols-2',
+                'transition-opacity duration-700',
+                inView ? 'opacity-100' : 'opacity-0',
+              ].join(' ')}
+              style={{
+                // Fade the belts out at the top/bottom edges of the viewport
+                // window rather than hard-cutting the cards.
+                maskImage:
+                  'linear-gradient(to bottom, transparent, black 8%, black 92%, transparent)',
+                WebkitMaskImage:
+                  'linear-gradient(to bottom, transparent, black 8%, black 92%, transparent)',
+              }}
+            >
+              {columns.map((col, colIndex) => (
+                <MarqueeColumn
+                  key={colIndex}
+                  cards={col}
+                  // Left drifts up, right drifts down.
+                  direction={colIndex === 0 ? 'up' : 'down'}
+                  reduce={!!reduce}
+                  // Offset the second belt so the two columns never sit in
+                  // lockstep rows.
+                  offset={colIndex === 0 ? 0 : -0.5}
+                  // With a single match both columns carry the same card; the
+                  // mirrored one is purely visual, so it must not be reachable
+                  // or announced twice.
+                  decorative={mirrored && colIndex === 1}
+                />
+              ))}
+            </div>
           </div>
         </div>
       </div>
     </section>
+  );
+}
+
+// One vertical belt of cards. The list is rendered twice inside a track that
+// animates by -50% (or from -50% to 0 going down), so the seam is invisible and
+// the loop is perfectly continuous. Reuses the scroll-reel-* keyframes already
+// in globals.css, which the global prefers-reduced-motion rule flattens for
+// free — `reduce` additionally drops the duplicate half so screen-reader and
+// reduced-motion users get one plain, static list.
+
+// Seconds per card, so the belt travels at a constant *speed* no matter how
+// many cards a filter leaves behind — otherwise a 2-card column would race
+// through its loop while a 20-card one crawled.
+const SECONDS_PER_CARD = 7.5;
+// A narrow filter can leave one card per column, and a sparse track leaves long
+// empty stretches drifting through the window. Repeat the list until it's at
+// least this long — a card is ~440px against a ~736px window, so four per half
+// keeps the belt continuously full with margin either side of the seam.
+const MIN_BELT_CARDS = 4;
+
+function MarqueeColumn({
+  cards,
+  direction,
+  reduce,
+  offset,
+  decorative = false,
+}: {
+  cards: ShowcaseCard[];
+  direction: 'up' | 'down';
+  reduce: boolean;
+  /** Fraction of the loop to start at, e.g. -0.5 for half a cycle in. */
+  offset: number;
+  /** This whole belt mirrors another one — hide it from AT and the tab order. */
+  decorative?: boolean;
+}) {
+  if (cards.length === 0) return <div />;
+
+  // Under reduced motion nothing scrolls, so the real list is shown as-is.
+  const belt = reduce
+    ? cards
+    : Array.from(
+        { length: Math.max(1, Math.ceil(MIN_BELT_CARDS / cards.length)) },
+        () => cards,
+      ).flat();
+  const duration = belt.length * SECONDS_PER_CARD;
+
+  return (
+    // The belt is taller than its window; the window clips it. `h-[42rem]` on
+    // mobile / `h-[46rem]` on desktop keeps roughly two cards visible at once.
+    <div className="group relative h-[42rem] overflow-hidden lg:h-[46rem]">
+      <div
+        // `showcase-belt` lets globals.css pause this track (and only this one)
+        // while the pointer is over one of its cards.
+        className="showcase-belt flex flex-col gap-5"
+        style={
+          reduce
+            ? undefined
+            : {
+                animationName: `scroll-reel-${direction}`,
+                animationDuration: `${duration}s`,
+                animationTimingFunction: 'linear',
+                animationIterationCount: 'infinite',
+                animationDelay: `${offset * duration}s`,
+                willChange: 'transform',
+              }
+        }
+      >
+        {/* Only the first pass through the real `cards` is exposed to assistive
+            tech and the tab order; every repeat is decorative. */}
+        {belt.map((card, i) => (
+          <ShowcaseCardTile
+            key={`a-${i}-${card.slug}`}
+            card={card}
+            duplicate={decorative || i >= cards.length}
+          />
+        ))}
+        {/* Duplicate half — makes the -50% translate seamless. Hidden from
+            assistive tech and skipped entirely under reduced motion. */}
+        {!reduce &&
+          belt.map((card, i) => (
+            <ShowcaseCardTile key={`b-${i}-${card.slug}`} card={card} duplicate />
+          ))}
+      </div>
+    </div>
+  );
+}
+
+function ShowcaseCardTile({
+  card,
+  duplicate = false,
+}: {
+  card: ShowcaseCard;
+  duplicate?: boolean;
+}) {
+  const primary = card.categories[0];
+  const cover = COVERS[primary] ?? COVER_FALLBACK;
+  const coverImage = card.coverImageUrl;
+
+  return (
+    <article className="shrink-0" aria-hidden={duplicate || undefined}>
+      <Link
+        href={`/work/${card.slug}`}
+        // The duplicate is decorative; keep it out of the tab order so the
+        // same case study isn't reachable twice.
+        tabIndex={duplicate ? -1 : undefined}
+        // `showcase-card` is the pause trigger — the hover region is this
+        // element's rounded box, so the belt only stops within the card radius.
+        className="showcase-card group/card block overflow-hidden rounded-3xl glass transition-transform duration-500 hover:-translate-y-1"
+      >
+        {/* Cover with a diagonal cutout corner (top-right) */}
+        <div
+          className={`relative aspect-[4/3] bg-gradient-to-br ${cover}`}
+          style={{
+            clipPath:
+              'polygon(0 0, calc(100% - 2.5rem) 0, 100% 2.5rem, 100% 100%, 0 100%)',
+          }}
+        >
+          {coverImage && (
+            <img
+              src={coverImage}
+              alt={duplicate ? '' : `${card.client} — ${primary}`}
+              loading="lazy"
+              decoding="async"
+              className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover/card:scale-[1.03]"
+            />
+          )}
+          <div className="absolute inset-0 bg-ink/25 mix-blend-multiply" />
+          <span className="absolute bottom-4 left-5 font-display text-lg font-semibold text-white/90 drop-shadow">
+            {card.client}
+          </span>
+        </div>
+
+        <div className="p-5">
+          <h3 className="font-display text-base font-semibold leading-snug text-white/90">
+            {card.result}
+          </h3>
+          <div className="mt-4 flex flex-wrap gap-2">
+            {card.categories.slice(0, 2).map((c) => (
+              <span
+                key={c}
+                className={`rounded-full border px-3 py-1 text-xs font-medium ${
+                  PILL[c] ?? PILL_FALLBACK
+                }`}
+              >
+                {c}
+              </span>
+            ))}
+          </div>
+        </div>
+      </Link>
+    </article>
   );
 }
 

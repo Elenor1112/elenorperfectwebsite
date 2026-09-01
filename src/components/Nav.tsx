@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import elenorLogo from '@/assets/elenor final logo-01.png';
+import elenorLogo from '@/assets/elenor logo For Web-03.png';
 
 export type NavLinkItem = { href: string; label: string };
 
@@ -42,7 +42,7 @@ export function Nav({
     >
       <div
         className={`container-x flex items-center justify-between rounded-full transition-all duration-500 ${
-          scrolled ? 'glass !px-5 py-2.5' : 'px-0'
+          scrolled ? 'glass !px-5 py-2.5' : 'md:px-0'
         }`}
       >
         <Link href="/" className="group flex items-center gap-2.5" aria-label="Elenor — home">
@@ -50,7 +50,7 @@ export function Nav({
             src={elenorLogo}
             alt="Elenor"
             priority
-            className="h-32 w-auto"
+            className={`w-auto transition-all duration-500 ${scrolled ? 'h-7' : 'h-9'}`}
           />
         </Link>
 

@@ -1,12 +1,13 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { getCaseStudy, getCaseStudySlugs } from '@/lib/data/work';
+import { getCaseStudy, getCaseStudySlugs, heroModelOf } from '@/lib/data/work';
 import { getSiteSettings } from '@/lib/data/settings';
 import { breadcrumbSchema, creativeWorkSchema } from '@/lib/schema';
 import { JsonLd } from '@/components/JsonLd';
 import { Reveal } from '@/components/Reveal';
 import { CaseStudyGallery } from '@/components/CaseStudyGallery';
+import { CaseStudyHeroModel } from '@/components/three/CaseStudyHeroModel';
 import { CTA } from '@/components/sections/CTA';
 import { RichText } from '@/lib/richtext/render';
 
@@ -39,6 +40,10 @@ export default async function CaseStudyPage({ params }: { params: { slug: string
   if (!result) notFound();
   const { caseStudy: c, galleries } = result;
 
+  // The first model across the galleries is promoted to the hero, so it is
+  // filtered out of the tabs below to avoid showing the same model twice.
+  const heroModel = heroModelOf(galleries);
+
   const crumbs = [
     { name: 'Home', path: '/' },
     { name: 'Work', path: '/work' },
@@ -60,22 +65,31 @@ export default async function CaseStudyPage({ params }: { params: { slug: string
               </span>
             ))}
           </nav>
-          <p className="eyebrow mt-8">{c.industry} · Case study</p>
-          <h1 className="mt-5 font-display text-4xl font-bold tracking-tight md:text-6xl">
-            {c.client}
-          </h1>
-          <p className="mt-7 max-w-2xl text-lg leading-relaxed text-white/70">{c.result}</p>
-          <div className="mt-7 flex flex-wrap gap-2">
-            {c.services.map((s) => (
-              <span key={s} className="rounded-full border border-white/15 px-3 py-1 text-xs text-white/60">
-                {s}
-              </span>
-            ))}
-            {c.technologies.map((t) => (
-              <span key={t} className="rounded-full border border-brand-cyan/30 px-3 py-1 text-xs text-brand-cyan">
-                {t}
-              </span>
-            ))}
+
+          {/* Title block left, 3D model right. Single column until lg so the
+              headline keeps full width on phones and tablets. */}
+          <div className="mt-8 grid items-center gap-10 lg:grid-cols-2 lg:gap-12">
+            <div>
+              <p className="eyebrow">{c.industry} · Case study</p>
+              <h1 className="mt-5 font-display text-4xl font-bold tracking-tight md:text-6xl">
+                {c.client}
+              </h1>
+              <p className="mt-7 max-w-2xl text-lg leading-relaxed text-white/70">{c.result}</p>
+              <div className="mt-7 flex flex-wrap gap-2">
+                {c.services.map((s) => (
+                  <span key={s} className="rounded-full border border-white/15 px-3 py-1 text-xs text-white/60">
+                    {s}
+                  </span>
+                ))}
+                {c.technologies.map((t) => (
+                  <span key={t} className="rounded-full border border-brand-cyan/30 px-3 py-1 text-xs text-brand-cyan">
+                    {t}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            <CaseStudyHeroModel client={c.client} />
           </div>
         </div>
       </section>
@@ -113,7 +127,7 @@ export default async function CaseStudyPage({ params }: { params: { slug: string
                     services: galleries.map((g) => ({
                       id: g.serviceSlug ?? g.id,
                       label: g.label,
-                      images: g.images.map((img) => img.url),
+                      items: g.items.filter((i) => i !== heroModel),
                       videoUrls: g.videoUrls,
                     })),
                   }}

@@ -13,6 +13,7 @@ export type FieldDef =
   | { kind: 'number'; name: string; label: string; hint?: string }
   | { kind: 'toggle'; name: string; label: string; hint?: string }
   | { kind: 'cta'; name: string; label: string }
+  | { kind: 'image'; name: string; label: string; hint?: string }
   | { kind: 'stringlist'; name: string; label: string; hint?: string }
   | { kind: 'items'; name: string; label: string; fields: ItemField[]; hint?: string };
 
@@ -88,6 +89,12 @@ export const SECTION_FIELDS: Record<string, FieldDef[]> = {
     { kind: 'text', name: 'eyebrow', label: 'Eyebrow' },
     { kind: 'textarea', name: 'quote', label: 'Quote' },
     { kind: 'text', name: 'cite', label: 'Attribution' },
+    {
+      kind: 'image',
+      name: 'portrait',
+      label: 'Portrait',
+      hint: 'cut-out PNG with a transparent background — the figure overlaps the card edge, so a photo with its background still on will show as a rectangle',
+    },
   ],
   story: [
     { kind: 'text', name: 'heading', label: 'Heading' },
@@ -109,6 +116,13 @@ export const SECTION_FIELDS: Record<string, FieldDef[]> = {
     { kind: 'textarea', name: 'mission', label: 'Mission' },
     { kind: 'text', name: 'visionTitle', label: 'Vision title' },
     { kind: 'textarea', name: 'vision', label: 'Vision' },
+  ],
+  brand_philosophy: [
+    { kind: 'text', name: 'heading', label: 'Heading' },
+    { kind: 'textarea', name: 'vision', label: 'Our Vision' },
+    { kind: 'textarea', name: 'mission', label: 'Our Mission' },
+    { kind: 'textarea', name: 'values', label: 'Our Values' },
+    { kind: 'textarea', name: 'goals', label: 'Our Goals' },
   ],
   timeline: [
     { kind: 'text', name: 'heading', label: 'Heading' },

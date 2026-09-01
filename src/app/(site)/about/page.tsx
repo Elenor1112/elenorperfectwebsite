@@ -1,12 +1,14 @@
 import type { Metadata } from 'next';
-import { PageShell } from '@/components/PageShell';
+import Link from 'next/link';
 import { FaqList } from '@/components/FaqList';
-import { Reveal } from '@/components/Reveal';
+import { AboutHero } from '@/components/about/AboutHero';
+import { AboutContent } from '@/components/about/AboutContent';
 import { CTA } from '@/components/sections/CTA';
 import { JsonLd } from '@/components/JsonLd';
-import { faqSchema } from '@/lib/schema';
+import { breadcrumbSchema, faqSchema } from '@/lib/schema';
 import { getPage, getSection } from '@/lib/data/pages';
 import { getFaqsByCategory } from '@/lib/data/faqs';
+import { getSiteSettings } from '@/lib/data/settings';
 import { hubPageMetadata } from '@/lib/data/seo';
 
 export function generateMetadata(): Promise<Metadata> {
@@ -19,13 +21,16 @@ export function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function AboutPage() {
-  const [page, aboutFaq] = await Promise.all([getPage('about'), getFaqsByCategory('about')]);
+  const [page, aboutFaq, site] = await Promise.all([
+    getPage('about'),
+    getFaqsByCategory('about'),
+    getSiteSettings(),
+  ]);
 
   const hero = getSection(page, 'about_hero');
   const quote = getSection(page, 'ceo_quote');
   const story = getSection(page, 'story');
-  const values = getSection(page, 'values');
-  const missionVision = getSection(page, 'mission_vision');
+  const philosophy = getSection(page, 'brand_philosophy');
   const timeline = getSection(page, 'timeline');
   const team = getSection(page, 'team');
   const faqHeading = getSection(page, 'about_faq');
@@ -36,74 +41,92 @@ export default async function AboutPage() {
   return (
     <>
       {aboutFaq.length > 0 ? <JsonLd data={faqSchema(aboutFaq)} /> : null}
-      <PageShell
-        eyebrow={hero.data.eyebrow}
-        title={hero.data.title}
-        lede={hero.data.lede}
-        crumbs={[{ name: 'About', path: '/about' }]}
+      <JsonLd
+        data={breadcrumbSchema(
+          [{ name: 'Home', path: '/' }, { name: 'About', path: '/about' }],
+          site.url,
+        )}
       />
+      {/* Animated hero: the artwork carries the headline copy, so the CMS
+          eyebrow/title/lede stay in the DOM for a11y + AEO but are hidden. */}
+      <section className="relative overflow-hidden border-b border-white/10 pt-28 md:pt-32">
+        <div className="container-x relative">
+          <nav
+            aria-label="Breadcrumb"
+            className="flex flex-wrap items-center gap-2 text-xs text-white/40"
+          >
+            <Link href="/" className="hover:text-white">Home</Link>
+            <span className="flex items-center gap-2">
+              <span aria-hidden>/</span>
+              <Link href="/about" className="hover:text-white">About</Link>
+            </span>
+          </nav>
 
-      <section className="py-24">
-        <div className="container-x flex flex-col gap-6">
-          {enabled('ceo_quote') ? (
-            <Reveal className="rounded-3xl glass p-9">
-              <p className="eyebrow">{quote.data.eyebrow}</p>
-              <blockquote className="mt-6 font-display text-xl font-medium leading-relaxed text-white/85 md:text-2xl">
-                {quote.data.quote}
-              </blockquote>
-              <cite className="mt-6 block not-italic text-sm text-white/50">
-                {quote.data.cite}
-              </cite>
-            </Reveal>
-          ) : null}
-
-          {enabled('story') ? (
-            <Reveal delay={120} className="rounded-3xl glass p-9">
-              <h2 className="font-display text-3xl font-semibold leading-tight">
-                {story.data.heading}
-              </h2>
-              {story.data.paragraphs.map((p, i) => (
-                <p key={i} className={`leading-relaxed text-white/65 ${i === 0 ? 'mt-6' : 'mt-4'}`}>
-                  {p}
-                </p>
-              ))}
-            </Reveal>
-          ) : null}
+          <p className="eyebrow sr-only">{hero.data.eyebrow}</p>
+          <h1 className="sr-only">{hero.data.title}</h1>
         </div>
 
-        {enabled('values') ? (
-          <div className="container-x mt-20 grid gap-6 md:grid-cols-3">
-            {values.data.items.map((v, i) => (
-              <Reveal key={v.title} delay={i * 90} className="rounded-2xl glass p-7">
-                <h3 className="font-display text-xl font-semibold text-brand-glow">{v.title}</h3>
-                <p className="mt-3 text-sm leading-relaxed text-white/60">{v.description}</p>
-              </Reveal>
-            ))}
-          </div>
-        ) : null}
+        {/* Full-bleed: outside container-x so the stage spans the viewport. */}
+        <div className="mt-6">
+          <AboutHero title={hero.data.title} />
+        </div>
+
+        {/* The lede is the one piece of hero copy that is shown rather than
+            read out: the artwork carries the headline, but the positioning
+            statement has nowhere else to live. Styled to match the Services
+            hub's lede (see ServicesAnimation.tsx) so the two hero sections
+            read as siblings.
+
+            container-x rather than a bespoke offset — .about-hero__stage
+            translates itself by --about-container-x specifically to align to
+            this utility, so the paragraph's left edge lands under the "A" of
+            "About us" for free. */}
+        {/* Pulled up into the stage's own footprint. The stage is a fixed
+            1920x500 box, but the wordmark only occupies its upper portion, so
+            laying the lede out after the stage left a growing band of dead
+            space below the word — 28px at 390 but 285px at 1920 — where the
+            Services hub keeps a constant 28px between its h1 and the same
+            paragraph.
+
+            That band is not a fixed length OR a fixed percentage; measured
+            across 11 widths it is exactly linear in the viewport:
+
+              band = 0.1875*vw - <wordmark font-size>     (max error 0.2px)
+
+            0.1875 is 100/533.33, i.e. how far the word's baseline sits down
+            the stage, and the stage's height is 100vw/3.84. The subtracted
+            term is the font-size because the type is a FIXED px size that
+            steps 45 -> 75px at md (see .about-hero__wordtext in globals.css)
+            while the stage keeps scaling with vw — which is why the required
+            trim climbs with width and then RESETS at 768px, and why neither a
+            single percentage nor a stepped one tracks it. An earlier -11.6%
+            was correct at 1440 and overlapped the word by 20px at 768.
+
+            Subtracting 28px from that band leaves exactly the Services gap. */}
+        <div className="container-x relative mt-[calc(45px+28px-0.1875*100vw)] pb-16 md:mt-[calc(75px+28px-0.1875*100vw)] md:pb-20">
+          {/* text-balance takes over line-breaking entirely, so any manual \n
+              in the CMS copy is flattened to a space first — mixing the two
+              would fight each other and produce uneven lines again. */}
+          <p className="max-w-3xl text-balance text-left text-lg leading-relaxed text-white/70">
+            {hero.data.lede.replace(/\n/g, ' ')}
+          </p>
+        </div>
       </section>
 
-      {enabled('mission_vision') && (missionVision.data.mission || missionVision.data.vision) ? (
-        <section className="border-t border-white/10 py-24">
-          <div className="container-x grid gap-6 md:grid-cols-2">
-            {missionVision.data.mission ? (
-              <Reveal className="rounded-3xl glass p-9">
-                <p className="eyebrow">{missionVision.data.missionTitle}</p>
-                <p className="mt-5 text-lg leading-relaxed text-white/70">
-                  {missionVision.data.mission}
-                </p>
-              </Reveal>
-            ) : null}
-            {missionVision.data.vision ? (
-              <Reveal delay={120} className="rounded-3xl glass p-9">
-                <p className="eyebrow">{missionVision.data.visionTitle}</p>
-                <p className="mt-5 text-lg leading-relaxed text-white/70">
-                  {missionVision.data.vision}
-                </p>
-              </Reveal>
-            ) : null}
-          </div>
-        </section>
+      {enabled('ceo_quote') || enabled('story') || enabled('brand_philosophy') ? (
+        <AboutContent
+          ceoEyebrow={quote.data.eyebrow}
+          ceoQuote={quote.data.quote}
+          ceoCite={quote.data.cite}
+          ceoPortrait={quote.data.portrait}
+          storyHeading={story.data.heading}
+          storyParagraphs={story.data.paragraphs}
+          philosophyHeading={philosophy.data.heading}
+          vision={philosophy.data.vision}
+          mission={philosophy.data.mission}
+          values={philosophy.data.values}
+          goals={philosophy.data.goals}
+        />
       ) : null}
 
       {enabled('timeline') && timeline.data.items.length > 0 ? (
