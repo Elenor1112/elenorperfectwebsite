@@ -12,3 +12,5 @@ const nextConfig = {
 };
 
 export default nextConfig;
+
+// Deploy trigger: no-op touch to force a fresh Vercel build from reverted main.
